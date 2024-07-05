@@ -35,5 +35,8 @@ namespace XenoStealer
             IntPtr Buffer,
             ulong BufferSize,
             ref ulong NumberOfBytesWritten);
+
+
+
     }
 }
