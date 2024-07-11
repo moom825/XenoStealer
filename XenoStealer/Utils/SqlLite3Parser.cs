@@ -205,6 +205,7 @@ namespace XenoStealer
 
         private bool ParseLeafTablePage(int headerOffset)
         {
+            tableEntries.Clear();
             int numberOfCells = ReadUShort(headerOffset + 3);
             //int cellContentAreaStart = ReadUShort(offset + 5);
             //if (cellContentAreaStart == 0)
@@ -397,6 +398,7 @@ namespace XenoStealer
 
         private bool ParseMasterLeafTablePage(int headerOffset) 
         {
+            MasterTableEntries.Clear();
             int numberOfCells = ReadUShort(headerOffset+3);
             //int cellContentAreaStart = ReadUShort(offset + 5);
             //if (cellContentAreaStart == 0)
@@ -640,7 +642,7 @@ namespace XenoStealer
         }
 
 
-        private struct MasterTableInfo// I feel like i should create a seperate file for these structs, but would love this class to be plug and play too. im going to keeo these here.
+        private struct MasterTableInfo// I feel like i should create a seperate file for these structs, but would love this class to be plug and play too. im going to keep these here.
         {
             public int rowId;
             public string typename;

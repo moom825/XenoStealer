@@ -533,5 +533,35 @@ namespace XenoStealer
             public bool bRestartable;
         }
 
+        public enum CRED_TYPE : int
+        {
+            GENERIC = 1,
+            DOMAIN_PASSWORD = 2,
+            DOMAIN_CERTIFICATE = 3,
+            DOMAIN_VISIBLE_PASSWORD = 4,
+            MAXIMUM = 5
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct CREDENTIALW
+        {
+            public int flags;
+            public int type;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string targetName;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string comment;
+            public FILETIME lastWritten;
+            public int credentialBlobSize;
+            public IntPtr credentialBlob;
+            public int persist;
+            public int attributeCount;
+            public IntPtr credAttribute;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string targetAlias;
+            [MarshalAs(UnmanagedType.LPWStr)]
+            public string userName;
+        }
+
     }
 }

