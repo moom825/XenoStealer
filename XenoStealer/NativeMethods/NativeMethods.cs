@@ -69,6 +69,10 @@ namespace XenoStealer
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern void SetLastError(uint dwErrCode);
 
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
+
+
         [DllImport("ntdll.dll", SetLastError = true, EntryPoint = "NtQueryInformationProcess")]
         private static extern int _NtQueryPbi32(
         IntPtr ProcessHandle,

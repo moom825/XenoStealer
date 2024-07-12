@@ -292,5 +292,18 @@ namespace XenoStealer
             return result;
         }
 
+        public static bool CompareByteArrays(byte[] b1, byte[] b2) 
+        {
+            if (b1 == null || b2 == null) 
+            {
+                return b1 == b2;
+            }
+            if (b1.Length != b2.Length) 
+            {
+                return false;
+            }
+            return NativeMethods.memcmp(b1, b2, (UIntPtr)b1.Length) == 0;
+        }
+
     }
 }
