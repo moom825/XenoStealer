@@ -57,7 +57,7 @@ namespace XenoStealer
             MasterTableInfo table = default(MasterTableInfo);
             foreach (MasterTableInfo masterTable in MasterTableEntries)
             {
-                if (masterTable.table_name.ToLower() == tableName.ToLower())
+                if (masterTable.typename.ToLower() == "table" && masterTable.name.ToLower() == tableName.ToLower())
                 {
                     table = masterTable;
                     break;
@@ -68,6 +68,7 @@ namespace XenoStealer
             {
                 return false;
             }
+            tableEntries.Clear();
             fieldNames.Clear();
             string[] names = ExtractColumnNames(table.sql_creation_command);
             if (ReadTableFromOffset((table.rootpage - 1) * pageSize)) //-1 to ignore the first page.
@@ -212,7 +213,6 @@ namespace XenoStealer
 
         private bool ParseLeafTablePage(int headerOffset)
         {
-            tableEntries.Clear();
             int numberOfCells = ReadUShort(headerOffset + 3);
             //int cellContentAreaStart = ReadUShort(offset + 5);
             //if (cellContentAreaStart == 0)
@@ -405,7 +405,6 @@ namespace XenoStealer
 
         private bool ParseMasterLeafTablePage(int headerOffset) 
         {
-            MasterTableEntries.Clear();
             int numberOfCells = ReadUShort(headerOffset+3);
             //int cellContentAreaStart = ReadUShort(offset + 5);
             //if (cellContentAreaStart == 0)

