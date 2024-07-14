@@ -55,7 +55,7 @@ namespace XenoStealer
 
         }
 
-        public static string Decrypt(string profilePath, string cypherText)
+        public static string DecryptBase64(string profilePath, string cypherText)
         {
             if (cypherText == null)
             {

