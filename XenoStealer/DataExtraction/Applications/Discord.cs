@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using static XenoStealer.DataExtractionStructs;
 
-namespace XenoStealer.DataExtraction.Applications
+namespace XenoStealer
 {
     public class Discord
     {

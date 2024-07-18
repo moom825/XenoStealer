@@ -8,9 +8,7 @@ namespace XenoStealer
 {
     public static class Configuration
     {
-        public static bool UseHeavensGateOnGecko = false;//this can sometimes be unstable, so if wanted, it can be disabled.
-
-
+        public static readonly string commonAppdata = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         public static readonly string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         public static readonly string roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 

