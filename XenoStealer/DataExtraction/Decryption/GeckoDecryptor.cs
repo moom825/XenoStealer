@@ -7,7 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using static XenoStealer.ASN1DER;
-using XenoStealer.DataExtraction.Parsers;
 using System.Text.RegularExpressions;
 using static XenoStealer.InternalStructs;
 

