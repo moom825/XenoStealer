@@ -13,7 +13,8 @@ namespace XenoStealer
     {
         public static void Main(string[] args)
         {
-            
+            var f = Crypto.GetInfo();
+            var d = "";
         }
     }
 }

