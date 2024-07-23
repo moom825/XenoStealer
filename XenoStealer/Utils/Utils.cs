@@ -59,9 +59,9 @@ namespace XenoStealer
             { 
                 return File.ReadAllBytes(filePath);
             } 
-            catch (Exception e)//make it check the exact error name
+            catch (Exception e)
             {
-                if (!e.Message.ToLower().Contains("used by another process")) 
+                if (e.HResult != -2147024864) //this is the error for if the file is being used by another process
                 {
                     return null;
                 }
